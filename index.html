@@ -1,0 +1,1949 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>懒妈方宁 · 文案生成器</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
+<script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', sans-serif;
+  background: #faf7f2;
+  color: #1a1208;
+  min-height: 100vh;
+  font-size: 14px;
+}
+
+header {
+  background: #1a1208;
+  padding: 16px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.logo { color: #faf7f2; font-size: 18px; font-weight: 700; letter-spacing: 2px; }
+.logo span { color: #e8915a; }
+.logo-sub { color: #665544; font-size: 12px; letter-spacing: 2px; }
+
+.container { max-width: 1200px; margin: 0 auto; padding: 28px 20px; }
+
+/* API行 */
+.api-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  border: 1px solid #ddd5c8;
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+.api-row label { font-size: 12px; color: #8a7560; white-space: nowrap; font-weight: 500; }
+.api-row input {
+  flex: 1;
+  border: 1px solid #ddd5c8;
+  border-radius: 7px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  background: #faf7f2;
+}
+.api-row input:focus { border-color: #c0622a; background: #fff; }
+.model-select {
+  border: 1px solid #ddd5c8; border-radius: 7px;
+  padding: 7px 10px; font-size: 12px; font-family: inherit;
+  background: #faf7f2; color: #1a1208; outline: none; cursor: pointer;
+  white-space: nowrap; flex-shrink: 0;
+}
+.model-select:focus { border-color: #c0622a; }
+
+/* 课程Tab栏 */
+.course-tabs-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.course-tab {
+  padding: 7px 18px;
+  border: 1px solid #ddd5c8;
+  border-radius: 20px;
+  background: #fff;
+  font-size: 13px;
+  font-family: inherit;
+  color: #8a7560;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.course-tab:hover { border-color: #e8915a; color: #c0622a; }
+.course-tab.active { background: #c0622a; color: #fff; border-color: #c0622a; font-weight: 600; }
+.course-tab.locked { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
+.new-course-btn {
+  padding: 7px 18px;
+  border: 1.5px dashed #ddd5c8;
+  border-radius: 20px;
+  background: none;
+  font-size: 13px;
+  font-family: inherit;
+  color: #8a7560;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.new-course-btn:hover { border-color: #c0622a; color: #c0622a; }
+
+/* 课程名称行 */
+.course-name-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.course-name-row label { font-size: 12px; color: #8a7560; white-space: nowrap; font-weight: 500; }
+.course-name-row input {
+  flex: 1;
+  border: 1px solid #ddd5c8;
+  border-radius: 7px;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  outline: none;
+  background: #faf7f2;
+  max-width: 340px;
+}
+.course-name-row input:focus { border-color: #c0622a; background: #fff; }
+
+/* 提示词区 */
+.prompt-box {
+  background: #fff;
+  border: 1px solid #ddd5c8;
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1208;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.section-title::before {
+  content: '';
+  width: 3px; height: 14px;
+  background: #c0622a;
+  border-radius: 2px;
+  display: block;
+}
+.prompt-meta { display: flex; align-items: center; gap: 10px; }
+.prompt-chars { font-size: 11px; color: #aaa; }
+.min-chars-wrap {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; color: #8a7560;
+}
+.min-chars-wrap input {
+  width: 64px; border: 1px solid #ddd5c8; border-radius: 6px;
+  padding: 3px 7px; font-size: 12px; font-family: inherit;
+  text-align: center; outline: none; background: #faf7f2; color: #1a1208;
+}
+.min-chars-wrap input:focus { border-color: #c0622a; background: #fff; }
+.save-prompt-btn {
+  padding: 6px 16px;
+  background: #c0622a;
+  color: white;
+  border: none;
+  border-radius: 7px;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.save-prompt-btn:hover { background: #a8541f; }
+.save-prompt-btn.saved { background: #4a7c59; }
+.prompt-textarea {
+  width: 100%;
+  min-height: 180px;
+  border: 1px solid #ddd5c8;
+  border-radius: 7px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-family: 'Courier New', monospace;
+  color: #1a1208;
+  background: #faf7f2;
+  outline: none;
+  resize: vertical;
+  line-height: 1.7;
+}
+.prompt-textarea:focus { border-color: #c0622a; background: #fff; }
+
+/* 文档区 */
+.docs-box {
+  background: #fff;
+  border: 1px solid #ddd5c8;
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+.doc-count-badge {
+  background: #f5ede0;
+  border: 1px solid #ddd5c8;
+  border-radius: 20px;
+  padding: 2px 10px;
+  font-size: 11px;
+  color: #8a7560;
+}
+.upload-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  background: #faf7f2;
+  border: 1.5px dashed #ddd5c8;
+  border-radius: 8px;
+}
+.upload-btn {
+  padding: 8px 20px;
+  background: #c0622a;
+  color: white;
+  border: none;
+  border-radius: 7px;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+.upload-btn:hover { background: #a8541f; }
+.upload-hint { font-size: 12px; color: #8a7560; line-height: 1.6; }
+.upload-hint strong { color: #1a1208; }
+.doc-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.doc-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #f5ede0;
+  border: 1px solid #ddd5c8;
+  border-radius: 20px;
+  padding: 4px 10px 4px 8px;
+  font-size: 12px;
+}
+.doc-chip.ok { border-color: #4a7c59; background: #eaf4ee; }
+.doc-chip.loading { border-color: #e8915a; background: #fef0e6; }
+.doc-chip .name { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.doc-chip .size { color: #8a7560; font-size: 11px; }
+.doc-chip button { background: none; border: none; cursor: pointer; color: #8a7560; font-size: 14px; padding: 0; line-height: 1; }
+.doc-chip button:hover { color: #c0392b; }
+
+/* 工作区 */
+.workspace {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+/* 左侧 */
+.left-panel { display: flex; flex-direction: column; gap: 12px; }
+.panel-title {
+  font-size: 14px; font-weight: 600; color: #1a1208;
+  display: flex; align-items: center; gap: 6px;
+}
+.panel-title::before {
+  content: '';
+  width: 3px; height: 14px;
+  background: #c0622a; border-radius: 2px; display: block;
+}
+.tasks-wrap {
+  display: flex; flex-direction: column; gap: 10px;
+  max-height: 52vh; overflow-y: auto; padding-right: 2px;
+}
+.tasks-wrap::-webkit-scrollbar { width: 3px; }
+.tasks-wrap::-webkit-scrollbar-thumb { background: #ddd5c8; border-radius: 2px; }
+
+.task-card {
+  background: #fff;
+  border: 1px solid #ddd5c8;
+  border-radius: 10px;
+  padding: 13px;
+  position: relative;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.05);
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+.task-card:hover { border-color: #e8915a; }
+.task-card.running { border-color: #c0622a; box-shadow: 0 0 0 2px rgba(192,98,42,0.12); }
+.task-card.done { border-color: #4a7c59; background: #f8fdf9; cursor: pointer; }
+.task-card.done:hover { border-color: #c0622a; background: #fff8f4; }
+/* 当前查看的任务：橙色边框高亮 */
+.task-card.viewing {
+  border-color: #c0622a !important;
+  background: #fff8f4 !important;
+  box-shadow: 0 0 0 2px rgba(192,98,42,0.18) !important;
+}
+
+.task-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 9px; }
+.task-label { font-size: 11px; color: #8a7560; font-weight: 500; letter-spacing: 1px; }
+.task-badge { font-size: 11px; padding: 1px 8px; border-radius: 20px; font-weight: 500; }
+.badge-wait { background: #f0ede8; color: #8a7560; }
+.badge-run { background: #fef0e6; color: #c0622a; }
+.badge-done { background: #eaf4ee; color: #4a7c59; }
+.badge-err { background: #fde8e8; color: #c0392b; }
+
+.del-task {
+  position: absolute; top: 10px; right: 10px;
+  width: 18px; height: 18px;
+  background: none; border: 1px solid #ddd5c8; border-radius: 50%;
+  color: #8a7560; cursor: pointer; font-size: 12px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s; line-height: 1;
+}
+.del-task:hover { background: #fde8e8; border-color: #c0392b; color: #c0392b; }
+
+.field-lbl { font-size: 11px; color: #8a7560; margin-bottom: 4px; }
+.task-card input[type=text], .task-card textarea {
+  width: 100%; border: 1px solid #ddd5c8; border-radius: 7px;
+  padding: 7px 10px; font-size: 13px; font-family: inherit;
+  color: #1a1208; background: #faf7f2; outline: none;
+  transition: border-color 0.2s; resize: none;
+}
+.task-card input:focus, .task-card textarea:focus { border-color: #c0622a; background: #fff; }
+.task-card input[type=text] { margin-bottom: 7px; }
+.task-card textarea { min-height: 68px; line-height: 1.6; }
+
+.add-task-btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px; border: 1.5px dashed #ddd5c8; border-radius: 10px;
+  background: none; color: #8a7560; font-size: 13px; font-family: inherit;
+  cursor: pointer; transition: all 0.2s;
+}
+.add-task-btn:hover { border-color: #c0622a; color: #c0622a; background: rgba(192,98,42,0.02); }
+
+.gen-btn {
+  width: 100%; padding: 12px; background: #c0622a; color: white;
+  border: none; border-radius: 10px; font-size: 15px; font-family: inherit;
+  font-weight: 600; cursor: pointer; letter-spacing: 2px;
+  transition: all 0.2s; box-shadow: 0 4px 12px rgba(192,98,42,0.28);
+}
+.gen-btn:hover:not(:disabled) { background: #a8541f; transform: translateY(-1px); }
+.gen-btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+.export-row {
+  display: none;
+  gap: 8px;
+}
+.export-row.show { display: flex; }
+.export-btn-xlsx {
+  flex: 1; padding: 10px 6px;
+  background: #4a7c59; color: white;
+  border: none; border-radius: 10px;
+  font-size: 13px; font-family: inherit; font-weight: 600;
+  cursor: pointer; letter-spacing: 1px; transition: all 0.2s;
+}
+.export-btn-xlsx:hover { background: #3a6347; }
+.export-btn-md {
+  flex: 1; padding: 10px 6px;
+  background: none; color: #8a7560;
+  border: 1px solid #ddd5c8; border-radius: 10px;
+  font-size: 13px; font-family: inherit;
+  cursor: pointer; letter-spacing: 1px; transition: all 0.2s;
+}
+.export-btn-md:hover { border-color: #c0622a; color: #c0622a; }
+
+/* 右侧结果区 */
+.right-panel { display: flex; flex-direction: column; gap: 10px; }
+
+/* 文章导航pills */
+.article-nav { display: flex; flex-wrap: wrap; gap: 6px; }
+.article-pill {
+  padding: 5px 14px;
+  border: 1px solid #ddd5c8;
+  border-radius: 20px;
+  background: #fff;
+  font-size: 12px;
+  color: #8a7560;
+  cursor: pointer;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+.article-pill:hover { border-color: #e8915a; color: #c0622a; }
+.article-pill.active { background: #c0622a; color: #fff; border-color: #c0622a; font-weight: 500; }
+.article-pill.pill-run { border-color: #e8915a; background: #fef0e6; color: #c0622a; }
+
+/* 单篇结果卡片 */
+.result-card {
+  background: #fff;
+  border: 1px solid #ddd5c8;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+.result-head {
+  padding: 11px 16px;
+  background: #f5ede0;
+  border-bottom: 1px solid #ddd5c8;
+  display: flex; align-items: center; gap: 10px;
+}
+.result-head-title {
+  font-size: 13px; font-weight: 600; color: #1a1208;
+  flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ref-badge {
+  font-size: 11px; color: #c0622a;
+  background: rgba(192,98,42,0.1);
+  padding: 2px 8px; border-radius: 10px; white-space: nowrap; flex-shrink: 0;
+}
+.result-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.copy-btn {
+  padding: 4px 12px; border-radius: 20px; font-size: 12px;
+  font-family: inherit; cursor: pointer; transition: all 0.2s;
+  background: #c0622a; color: white; border: none;
+}
+.copy-btn:hover { background: #a8541f; }
+.copy-btn.copied { background: #4a7c59; }
+.copy-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.truncated-badge {
+  font-size: 11px; color: #9a6b00;
+  background: #fff8e0; border: 1px solid #f0c840;
+  border-radius: 10px; padding: 2px 9px;
+  white-space: nowrap; flex-shrink: 0;
+}
+.continue-btn {
+  padding: 4px 12px; border-radius: 20px; font-size: 12px;
+  font-family: inherit; cursor: pointer; transition: all 0.2s;
+  background: none; color: #c0622a; border: 1px solid #c0622a;
+}
+.continue-btn:hover { background: #c0622a; color: white; }
+.continue-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.result-body { padding: 20px; max-height: 620px; overflow-y: auto; }
+.result-body::-webkit-scrollbar { width: 3px; }
+.result-body::-webkit-scrollbar-thumb { background: #ddd5c8; border-radius: 2px; }
+
+/* 流式阶段 */
+.result-text { font-size: 14px; line-height: 1.95; color: #1a1208; }
+.result-text.streaming { white-space: pre-wrap; }
+
+/* Markdown渲染后样式 */
+.result-text h1 { font-size: 18px; font-weight: 700; color: #1a1208; margin: 20px 0 8px; }
+.result-text h2 { font-size: 15px; font-weight: 600; color: #c0622a; margin: 18px 0 6px; }
+.result-text h3 { font-size: 14px; font-weight: 600; color: #1a1208; margin: 14px 0 5px; }
+.result-text p { margin-bottom: 10px; }
+.result-text strong { font-weight: 600; }
+.result-text em { font-style: italic; }
+.result-text ul, .result-text ol { padding-left: 20px; margin-bottom: 10px; }
+.result-text li { margin-bottom: 4px; line-height: 1.8; }
+.result-text blockquote { border-left: 3px solid #c0622a; padding-left: 12px; color: #665544; margin: 10px 0; }
+.result-text hr { border: none; border-top: 1px solid #ddd5c8; margin: 16px 0; }
+.result-text code { background: #f5ede0; border-radius: 4px; padding: 1px 5px; font-size: 12px; font-family: 'Courier New', monospace; }
+
+.loading-box {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 40px; gap: 12px; color: #8a7560;
+}
+.spinner {
+  width: 24px; height: 24px;
+  border: 2px solid #ddd5c8; border-top-color: #c0622a;
+  border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.cursor {
+  display: inline-block; width: 2px; height: 13px;
+  background: #c0622a; margin-left: 2px; vertical-align: middle;
+  animation: blink 0.8s infinite;
+}
+@keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0; } }
+
+.empty-state {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; min-height: 260px; color: #8a7560;
+  text-align: center; gap: 10px;
+  border: 1.5px dashed #ddd5c8; border-radius: 12px;
+}
+.empty-state .ei { font-size: 34px; opacity: 0.35; }
+.empty-state p { font-size: 13px; line-height: 1.8; }
+
+@media (max-width: 860px) {
+  .workspace { grid-template-columns: 1fr; }
+  header { padding: 12px 16px; }
+  .container { padding: 16px 12px; }
+}
+
+/* API Key 已记住标记 */
+.api-saved-badge {
+  font-size: 11px; color: #4a7c59;
+  background: #eaf4ee; border-radius: 10px;
+  padding: 2px 9px; white-space: nowrap; flex-shrink: 0;
+  display: none;
+}
+.api-saved-badge.show { display: inline-block; }
+
+/* 批量导入按钮 */
+.batch-import-btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px; border: 1.5px dashed #ddd5c8; border-radius: 10px;
+  background: none; color: #8a7560; font-size: 13px; font-family: inherit;
+  cursor: pointer; transition: all 0.2s;
+}
+.batch-import-btn:hover { border-color: #4a7c59; color: #4a7c59; }
+
+/* ─── Modal 通用 ─── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(26,18,8,0.55);
+  z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.modal-box {
+  background: #fff; border-radius: 14px;
+  width: 100%; max-width: 700px; max-height: 90vh;
+  display: flex; flex-direction: column;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.22); overflow: hidden;
+}
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 15px 20px; border-bottom: 1px solid #ddd5c8; background: #f5ede0;
+}
+.modal-title { font-size: 15px; font-weight: 700; color: #1a1208; }
+.modal-close {
+  width: 28px; height: 28px; background: none;
+  border: 1px solid #ddd5c8; border-radius: 50%;
+  color: #8a7560; cursor: pointer; font-size: 16px;
+  display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+}
+.modal-close:hover { background: #fde8e8; border-color: #c0392b; color: #c0392b; }
+.modal-body {
+  flex: 1; overflow-y: auto; padding: 18px 20px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.modal-body::-webkit-scrollbar { width: 3px; }
+.modal-body::-webkit-scrollbar-thumb { background: #ddd5c8; border-radius: 2px; }
+.modal-footer {
+  padding: 13px 20px; border-top: 1px solid #ddd5c8; background: #faf7f2;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+}
+.modal-btns { display: flex; gap: 8px; }
+.modal-cancel {
+  padding: 8px 20px; border: 1px solid #ddd5c8; border-radius: 8px;
+  background: none; color: #8a7560; font-size: 13px; font-family: inherit;
+  cursor: pointer; transition: all 0.2s;
+}
+.modal-cancel:hover { border-color: #c0622a; color: #c0622a; }
+.modal-confirm {
+  padding: 8px 24px; border: none; border-radius: 8px;
+  background: #c0622a; color: white; font-size: 13px; font-family: inherit;
+  font-weight: 600; cursor: pointer; transition: all 0.2s;
+}
+.modal-confirm:hover:not(:disabled) { background: #a8541f; }
+.modal-confirm:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ─── 批量导入 内部样式 ─── */
+.import-hint {
+  font-size: 12px; color: #8a7560; line-height: 1.75;
+  background: #f5ede0; border-radius: 8px; padding: 10px 14px;
+}
+.import-hint strong { color: #1a1208; }
+.import-tabs {
+  display: flex; border: 1px solid #ddd5c8; border-radius: 8px; overflow: hidden;
+}
+.import-tab {
+  flex: 1; padding: 8px; border: none; background: none;
+  font-size: 13px; font-family: inherit; color: #8a7560;
+  cursor: pointer; transition: all 0.2s;
+}
+.import-tab.active { background: #c0622a; color: white; font-weight: 600; }
+.import-tab:not(.active):hover { background: #f5ede0; }
+.import-paste {
+  width: 100%; min-height: 160px; border: 1px solid #ddd5c8; border-radius: 8px;
+  padding: 10px 12px; font-size: 13px; font-family: 'Courier New', monospace;
+  color: #1a1208; background: #faf7f2; outline: none; resize: vertical; line-height: 1.7;
+}
+.import-paste:focus { border-color: #c0622a; background: #fff; }
+.csv-upload-area {
+  display: flex; align-items: center; gap: 12px; padding: 14px;
+  background: #faf7f2; border: 1.5px dashed #ddd5c8; border-radius: 8px;
+}
+.csv-hint { font-size: 12px; color: #8a7560; }
+.preview-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.preview-title { font-size: 13px; font-weight: 600; color: #1a1208; }
+.preview-count {
+  font-size: 11px; color: #4a7c59;
+  background: #eaf4ee; border-radius: 10px; padding: 2px 8px;
+}
+.preview-table-wrap {
+  border: 1px solid #ddd5c8; border-radius: 8px; overflow: auto; max-height: 220px;
+}
+.preview-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.preview-table th {
+  background: #f5ede0; padding: 7px 10px; text-align: left;
+  border-bottom: 1px solid #ddd5c8; color: #8a7560; font-weight: 600;
+  position: sticky; top: 0;
+}
+.preview-table td { padding: 7px 10px; border-bottom: 1px solid #f0ede8; vertical-align: top; }
+.preview-table td.title-col { font-weight: 500; color: #1a1208; white-space: nowrap; max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
+.preview-table td.material-col { color: #665544; max-width: 320px; }
+.cell-clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.preview-table tr:last-child td { border-bottom: none; }
+.preview-table tr:hover td { background: #faf7f2; }
+.import-mode-row { display: flex; gap: 16px; align-items: center; }
+.radio-label { display: flex; align-items: center; gap: 5px; font-size: 13px; color: #665544; cursor: pointer; }
+.radio-label input { cursor: pointer; accent-color: #c0622a; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">懒妈方宁 <span>·</span> 文案生成器</div>
+  <div class="logo-sub">小红书内容批量创作</div>
+</header>
+
+<div class="container">
+
+  <!-- API Key（全局） -->
+  <div class="api-row" id="apiKeyRow">
+    <label>API KEY</label>
+    <input type="password" id="apiKey" placeholder="粘贴你的 Anthropic API Key（sk-ant-...）" oninput="onApiKeyInput()">
+    <select class="model-select" id="modelSelect" onchange="onModelChange()">
+      <option value="claude-haiku-4-5">Haiku · 省钱</option>
+      <option value="claude-sonnet-4-6">Sonnet · 精品</option>
+    </select>
+    <span class="api-saved-badge" id="apiSavedBadge">🔒 已记住</span>
+  </div>
+
+  <!-- 课程Tab栏 -->
+  <div class="course-tabs-row" id="courseTabsRow">
+    <button class="new-course-btn" type="button" onclick="addCourse()">＋ 新建课程</button>
+  </div>
+
+  <!-- 课程名称 -->
+  <div class="course-name-row">
+    <label>课程名称</label>
+    <input type="text" id="courseNameInput" placeholder="输入课程名称" oninput="onCourseNameChange()">
+  </div>
+
+  <!-- 提示词 -->
+  <div class="prompt-box">
+    <div class="section-header">
+      <div class="section-title">专属提示词</div>
+      <div class="prompt-meta">
+        <span class="prompt-chars" id="promptChars">0 字符</span>
+        <button class="save-prompt-btn" type="button" id="savePromptBtn" onclick="savePrompt()">保存提示词</button>
+      </div>
+    </div>
+    <textarea class="prompt-textarea" id="promptTextarea"
+              placeholder="在这里输入这个课程的专属提示词..."
+              oninput="onPromptInput()"></textarea>
+  </div>
+
+  <!-- 文档上传 -->
+  <div class="docs-box">
+    <div class="section-header">
+      <div class="section-title">课程资料库</div>
+      <div class="doc-count-badge" id="docCountBadge">0 个文档</div>
+    </div>
+    <div class="upload-area">
+      <input type="file" id="fileInput" multiple accept=".docx,.md,.txt,.pdf"
+             style="display:none" onchange="onFileChange(event)">
+      <button class="upload-btn" type="button" onclick="triggerUpload()">📂 选择文件</button>
+      <div class="upload-hint">
+        支持 <strong>Word (.docx)</strong> · <strong>Markdown (.md)</strong> · <strong>纯文本 (.txt)</strong> · <strong>PDF (.pdf)</strong><br>
+        可同时选择多个文件，上传后自动保存，刷新页面无需重新上传
+      </div>
+    </div>
+    <div class="doc-list" id="docList"></div>
+  </div>
+
+  <!-- 工作区 -->
+  <div class="workspace">
+    <div class="left-panel">
+      <div class="panel-title">创作任务</div>
+      <div class="tasks-wrap" id="tasksWrap"></div>
+      <button class="batch-import-btn" type="button" id="batchImportBtn" onclick="openBatchModal()">📊 批量导入（表格）</button>
+      <button class="add-task-btn" type="button" onclick="addTask()">＋ 添加一篇</button>
+      <button class="gen-btn" type="button" id="genBtn" onclick="generateAll()">开始生成文章</button>
+      <div class="export-row" id="exportRow">
+        <button class="export-btn-xlsx" type="button" onclick="exportToXlsx()">⬇ 导出 Excel</button>
+        <button class="export-btn-md" type="button" onclick="exportAllMd()">⬇ MD 压缩包</button>
+      </div>
+    </div>
+
+    <!-- 右侧：单篇查看 -->
+    <div class="right-panel" id="rightPanel">
+      <!-- 空状态 -->
+      <div class="empty-state" id="emptyState">
+        <div class="ei">✍️</div>
+        <p>上传课程文档，填写标题和素材<br>点击「开始生成」后文章出现在这里</p>
+      </div>
+
+      <!-- 文章导航（2篇以上显示） -->
+      <div class="article-nav" id="articleNav" style="display:none"></div>
+
+      <!-- 单篇展示卡片 -->
+      <div class="result-card" id="resultCard" style="display:none">
+        <div class="result-head">
+          <div class="result-head-title" id="singleTitle"></div>
+          <div class="ref-badge" id="singleRef" style="display:none"></div>
+          <span class="truncated-badge" id="truncatedBadge" style="display:none">⚠️ 未写完</span>
+          <div class="result-actions">
+            <button class="continue-btn" id="continueBtn" type="button" onclick="continueTask()" style="display:none">续写</button>
+            <button class="copy-btn" id="singleCopyBtn" type="button" onclick="copyActiveResult()" disabled>复制 MD</button>
+          </div>
+        </div>
+        <div class="result-body" id="singleBody">
+          <div class="loading-box" id="singleLoading">
+            <div class="spinner"></div>
+            <span style="font-size:13px">正在创作，请稍候…</span>
+          </div>
+          <div class="result-text streaming" id="singleText" style="display:none"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ 批量导入 Modal ═══ -->
+<div class="modal-overlay" id="batchModal" style="display:none" onclick="onModalOverlayClick(event)">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">批量导入任务</div>
+      <button class="modal-close" type="button" onclick="closeBatchModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="import-hint">
+        从 <strong>Excel</strong> 或 <strong>Google Sheets</strong> 选中多行后直接复制粘贴，或上传 CSV 文件。<br>
+        格式要求：<strong>第一列 = 标题</strong>，<strong>第二列 = 素材</strong>（支持含表头行，自动识别跳过）
+      </div>
+      <div class="import-tabs">
+        <button class="import-tab active" type="button" id="tabPaste" onclick="switchImportTab('paste')">📋 粘贴表格数据</button>
+        <button class="import-tab" type="button" id="tabFile" onclick="switchImportTab('file')">📂 上传 CSV 文件</button>
+      </div>
+      <div id="importPasteArea">
+        <textarea class="import-paste" id="importPaste"
+          placeholder="从 Excel / Google Sheets 复制数据粘贴到这里…&#10;&#10;示例（第一列标题，第二列素材）：&#10;标题&#9;素材&#10;长期高敏感的孩子&#9;孩子总是对细微刺激反应强烈，一点声音都会哭…&#10;如何帮助敏感儿童&#9;敏感的孩子往往需要更多陪伴和理解…"
+          oninput="previewImportData()"></textarea>
+      </div>
+      <div id="importFileArea" style="display:none">
+        <div class="csv-upload-area">
+          <input type="file" id="csvFileInput" accept=".csv,.tsv,.txt,.xlsx,.xls" style="display:none" onchange="onCsvFileChange(event)">
+          <button class="upload-btn" type="button" onclick="document.getElementById('csvFileInput').click()">📂 选择文件</button>
+          <span class="csv-hint" id="csvFileName">支持 WPS/Excel (.xlsx/.xls) · CSV · TSV</span>
+        </div>
+      </div>
+      <div id="importPreview" style="display:none">
+        <div class="preview-header">
+          <span class="preview-title">解析预览</span>
+          <span class="preview-count" id="previewCount"></span>
+        </div>
+        <div class="preview-table-wrap">
+          <table class="preview-table">
+            <thead><tr><th>#</th><th>标题</th><th>素材</th></tr></thead>
+            <tbody id="previewTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <div class="import-mode-row">
+        <label class="radio-label">
+          <input type="radio" name="importMode" value="replace" checked> 替换现有任务
+        </label>
+        <label class="radio-label">
+          <input type="radio" name="importMode" value="append"> 追加到现有任务
+        </label>
+      </div>
+      <div class="modal-btns">
+        <button class="modal-cancel" type="button" onclick="closeBatchModal()">取消</button>
+        <button class="modal-confirm" type="button" id="importConfirmBtn" onclick="confirmBatchImport()" disabled>导入任务</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// PDF.js worker
+if (typeof pdfjsLib !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+// marked 配置
+if (typeof marked !== 'undefined') {
+  marked.setOptions({ breaks: true, gfm: true });
+}
+
+// ============================================================
+// 状态
+// ============================================================
+let courses = [];          // [{id, name, prompt, tasks:[{id,title,material,status,result,refName}]}]
+let currentCourseId = null;
+let courseSeq = 0;
+let taskSeq = 0;
+let courseDocs = {};       // {courseId: [{name, size, content}]} — 不持久化
+let activeViewId = null;   // 右侧当前显示哪个任务
+let isGenerating = false;  // 生成中标志，防止切换课程
+
+// ============================================================
+// localStorage
+// ============================================================
+const LS_KEY = 'lanma_v3';
+
+function saveToStorage() {
+  const taskData = t => ({
+    id: t.id, title: t.title, material: t.material,
+    status: t.status === 'run' ? 'wait' : (t.status || 'wait'),
+    result: t.result || '',
+    refName: t.refName || '',
+    truncated: t.truncated || false,
+  });
+  const base = {
+    courses: courses.map(c => ({
+      id: c.id, name: c.name, prompt: c.prompt,
+      tasks: c.tasks.map(taskData)
+    })),
+    currentCourseId, courseSeq, taskSeq,
+  };
+  // 优先级 1：结果 + 文档 全保存
+  try {
+    const docsData = {};
+    for (const [cid, docs] of Object.entries(courseDocs)) {
+      docsData[cid] = docs.map(d => ({ name: d.name, size: d.size, content: d.content }));
+    }
+    localStorage.setItem(LS_KEY, JSON.stringify({ ...base, courseDocs: docsData }));
+    return;
+  } catch(e) {}
+  // 优先级 2：结果保留，文档舍弃（文章比文档重要）
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(base));
+    return;
+  } catch(e) {}
+  // 优先级 3：只保存结构，不保存内容（最后兜底）
+  try {
+    const minimal = {
+      ...base,
+      courses: base.courses.map(c => ({
+        ...c, tasks: c.tasks.map(t => ({ id: t.id, title: t.title, material: t.material }))
+      }))
+    };
+    localStorage.setItem(LS_KEY, JSON.stringify(minimal));
+  } catch(e) {}
+}
+
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    courses = data.courses.map(c => ({
+      ...c,
+      tasks: c.tasks.map(t => ({
+        ...t,
+        // 已完成的保持 done，其余重置为 wait（生成中无法续接）
+        status: t.status === 'done' ? 'done' : 'wait',
+        result: t.result || '',
+        refName: t.refName || '',
+        errorMsg: '',
+        truncated: t.truncated || false,
+      }))
+    }));
+    currentCourseId = data.currentCourseId;
+    courseSeq = data.courseSeq || courses.length;
+    taskSeq = data.taskSeq || 0;
+    if (data.courseDocs) {
+      for (const [cid, docs] of Object.entries(data.courseDocs)) {
+        courseDocs[cid] = docs;
+      }
+    }
+    return courses.length > 0;
+  } catch(e) { return false; }
+}
+
+// ============================================================
+// 课程管理
+// ============================================================
+function addCourse() {
+  courseSeq++;
+  const id = courseSeq;
+  courses.push({ id, name: '课程 ' + id, prompt: '', tasks: [] });
+  courseDocs[id] = [];
+  switchCourse(id);
+  addTask();
+  setTimeout(() => document.getElementById('courseNameInput')?.select(), 50);
+}
+
+function switchCourse(id) {
+  if (isGenerating) {
+    alert('文章生成中，请等待完成后再切换课程');
+    return;
+  }
+  currentCourseId = id;
+  activeViewId = null;
+  renderCourseTabs();
+  renderCourseArea();
+  saveToStorage();
+}
+
+function getCurrentCourse() {
+  return courses.find(c => c.id === currentCourseId);
+}
+
+function onCourseNameChange() {
+  const c = getCurrentCourse();
+  if (!c) return;
+  c.name = document.getElementById('courseNameInput').value;
+  renderCourseTabs();
+  saveToStorage();
+}
+
+function savePrompt() {
+  const c = getCurrentCourse();
+  if (!c) return;
+  c.prompt = document.getElementById('promptTextarea').value;
+  saveToStorage();
+  const btn = document.getElementById('savePromptBtn');
+  btn.textContent = '已保存 ✓';
+  btn.classList.add('saved');
+  setTimeout(() => { btn.textContent = '保存提示词'; btn.classList.remove('saved'); }, 2000);
+}
+
+function onPromptInput() {
+  document.getElementById('promptChars').textContent =
+    document.getElementById('promptTextarea').value.length + ' 字符';
+}
+
+// ============================================================
+// 渲染
+// ============================================================
+function renderCourseTabs() {
+  const row = document.getElementById('courseTabsRow');
+  const newBtn = row.querySelector('.new-course-btn');
+  row.innerHTML = '';
+  for (const c of courses) {
+    const btn = document.createElement('button');
+    btn.className = 'course-tab'
+      + (c.id === currentCourseId ? ' active' : '')
+      + (isGenerating && c.id !== currentCourseId ? ' locked' : '');
+    btn.textContent = c.name;
+    btn.onclick = () => switchCourse(c.id);
+    row.appendChild(btn);
+  }
+  row.appendChild(newBtn);
+}
+
+function renderCourseArea() {
+  const c = getCurrentCourse();
+  if (!c) return;
+  document.getElementById('courseNameInput').value = c.name;
+  document.getElementById('promptTextarea').value = c.prompt;
+  document.getElementById('promptChars').textContent = c.prompt.length + ' 字符';
+  renderDocList();
+  renderTaskList();
+  renderRightPanel();
+  updateExportBtn();
+}
+
+function renderDocList() {
+  const list = document.getElementById('docList');
+  list.innerHTML = '';
+  for (const doc of (courseDocs[currentCourseId] || [])) {
+    appendDocChip(doc.name, doc.size, 'ok');
+  }
+  updateDocCount();
+}
+
+function renderTaskList() {
+  const wrap = document.getElementById('tasksWrap');
+  wrap.innerHTML = '';
+  for (const task of (getCurrentCourse()?.tasks || [])) {
+    wrap.appendChild(buildTaskCard(task));
+  }
+}
+
+// ============================================================
+// 右侧面板（单篇查看）
+// ============================================================
+function renderRightPanel() {
+  const c = getCurrentCourse();
+  const startedTasks = c?.tasks.filter(t => t.status === 'run' || t.status === 'done' || t.status === 'error') || [];
+
+  const emptyState = document.getElementById('emptyState');
+  const articleNav = document.getElementById('articleNav');
+  const resultCard = document.getElementById('resultCard');
+
+  if (startedTasks.length === 0 || activeViewId === null) {
+    emptyState.style.display = '';
+    articleNav.style.display = 'none';
+    resultCard.style.display = 'none';
+    return;
+  }
+
+  emptyState.style.display = 'none';
+
+  // 文章导航（2篇及以上才显示）
+  if (startedTasks.length >= 2) {
+    articleNav.style.display = 'flex';
+    articleNav.innerHTML = '';
+    for (const t of startedTasks) {
+      const pill = document.createElement('button');
+      pill.type = 'button';
+      const raw = t.title || '任务 ' + t.id;
+      pill.className = 'article-pill'
+        + (t.id === activeViewId ? ' active' : '')
+        + (t.status === 'run' ? ' pill-run' : '');
+      pill.textContent = raw.length > 18 ? raw.substring(0, 18) + '…' : raw;
+      pill.title = raw;
+      pill.onclick = () => setActiveView(t.id);
+      articleNav.appendChild(pill);
+    }
+  } else {
+    articleNav.style.display = 'none';
+  }
+
+  // 结果卡片
+  const task = c?.tasks.find(t => t.id === activeViewId);
+  if (!task) { resultCard.style.display = 'none'; return; }
+
+  resultCard.style.display = '';
+  document.getElementById('singleTitle').textContent = task.title || '任务 ' + task.id;
+
+  const refEl = document.getElementById('singleRef');
+  if (task.refName) {
+    refEl.style.display = '';
+    refEl.textContent = '📚 ' + task.refName;
+  } else {
+    refEl.style.display = 'none';
+  }
+
+  const loading = document.getElementById('singleLoading');
+  const textEl = document.getElementById('singleText');
+  const copyBtn = document.getElementById('singleCopyBtn');
+
+  if (task.status === 'run') {
+    loading.innerHTML = '<div class="spinner"></div><span style="font-size:13px">正在创作，请稍候…</span>';
+    loading.style.display = 'flex';
+    textEl.style.display = 'none';
+    textEl.classList.add('streaming');
+    copyBtn.disabled = true;
+    document.getElementById('truncatedBadge').style.display = 'none';
+    document.getElementById('continueBtn').style.display = 'none';
+  } else if (task.status === 'done') {
+    loading.style.display = 'none';
+    textEl.style.display = 'block';
+    textEl.classList.remove('streaming');
+    textEl.innerHTML = marked.parse(task.result);
+    copyBtn.disabled = false;
+    const showWarn = !!task.truncated;
+    document.getElementById('truncatedBadge').style.display = showWarn ? '' : 'none';
+    document.getElementById('continueBtn').style.display = showWarn ? '' : 'none';
+  } else if (task.status === 'error') {
+    document.getElementById('truncatedBadge').style.display = 'none';
+    document.getElementById('continueBtn').style.display = 'none';
+    const msg = task.errorMsg || '未知错误';
+    loading.innerHTML = `
+      <div style="text-align:center;padding:8px 0">
+        <div style="color:#c0392b;font-size:13px;margin-bottom:4px;font-weight:600">生成失败</div>
+        <div style="color:#8a7560;font-size:12px;margin-bottom:14px;max-width:360px;line-height:1.6;word-break:break-all">${escAttr(msg)}</div>
+        <button onclick="retryTask(${task.id})" style="padding:7px 22px;background:#c0622a;color:white;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:600">重新生成</button>
+      </div>`;
+    loading.style.display = 'flex';
+    textEl.style.display = 'none';
+    copyBtn.disabled = true;
+  }
+}
+
+// 切换当前查看的文章
+function setActiveView(id) {
+  activeViewId = id;
+  // 更新左侧任务卡片的 viewing 高亮
+  document.querySelectorAll('.task-card').forEach(el => el.classList.remove('viewing'));
+  document.getElementById('task_' + id)?.classList.add('viewing');
+  renderRightPanel();
+}
+
+function updateExportBtn() {
+  const c = getCurrentCourse();
+  const hasDone = c?.tasks.some(t => t.status === 'done');
+  document.getElementById('exportRow').classList.toggle('show', !!hasDone);
+}
+
+// ============================================================
+// 任务卡片构建
+// ============================================================
+function buildTaskCard(task) {
+  const statusMap = {
+    wait:  ['badge-wait', '待生成'],
+    run:   ['badge-run',  '生成中…'],
+    done:  ['badge-done', '已完成'],
+    error: ['badge-err',  '出错了'],
+  };
+  const [cls, txt] = statusMap[task.status] || statusMap.wait;
+
+  let cardClass = 'task-card';
+  if (task.status === 'run')   cardClass += ' running';
+  if (task.status === 'done')  cardClass += ' done';
+  if (task.id === activeViewId) cardClass += ' viewing';
+
+  const card = document.createElement('div');
+  card.className = cardClass;
+  card.id = 'task_' + task.id;
+
+  // done 状态点击整个卡片（非输入控件区域）切换查看
+  card.onclick = (e) => {
+    if (e.target.closest('input, textarea, button')) return;
+    if (task.status === 'done') setActiveView(task.id);
+  };
+
+  card.innerHTML = `
+    <div class="task-top">
+      <span class="task-label">任务 ${task.id}</span>
+      <span class="task-badge ${cls}" id="badge_${task.id}">${txt}</span>
+    </div>
+    <button class="del-task" type="button"
+      onclick="event.stopPropagation();deleteTask(${task.id})">×</button>
+    <div class="field-lbl">标题</div>
+    <input type="text" id="tt_${task.id}" value="${escAttr(task.title)}"
+           placeholder="例：长期高敏感的孩子，一眼就能看出来"
+           oninput="syncTask(${task.id})">
+    <div class="field-lbl" style="margin-top:7px">素材</div>
+    <textarea id="tm_${task.id}" placeholder="填入真实场景、读者留言或观察到的事..."
+              oninput="syncTask(${task.id})">${escAttr(task.material)}</textarea>
+  `;
+  return card;
+}
+
+function escAttr(s) {
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ============================================================
+// 文件上传
+// ============================================================
+function triggerUpload() { document.getElementById('fileInput').click(); }
+
+function onFileChange(e) {
+  const files = e.target.files;
+  if (!files || files.length === 0) return;
+  processFiles(files);
+  e.target.value = '';
+}
+
+async function processFiles(files) {
+  if (!courseDocs[currentCourseId]) courseDocs[currentCourseId] = [];
+  const docs = courseDocs[currentCourseId];
+  for (const file of Array.from(files)) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!['docx', 'doc', 'md', 'txt', 'pdf'].includes(ext)) {
+      alert('不支持的文件格式：' + file.name); continue;
+    }
+    if (docs.find(d => d.name === file.name)) continue;
+    appendDocChip(file.name, file.size, 'loading');
+    try {
+      let content = '';
+      if (ext === 'docx' || ext === 'doc') content = await readDocx(file);
+      else if (ext === 'pdf') content = await readPdf(file);
+      else content = await readAsText(file);
+      if (!content || content.trim().length < 10) throw new Error('文件内容为空或无法解析');
+      docs.push({ name: file.name, size: file.size, content });
+      updateChipState(file.name, 'ok');
+      saveToStorage();
+    } catch(err) {
+      removeChip(file.name);
+      alert('读取失败：' + file.name + '\n' + err.message);
+    }
+  }
+  updateDocCount();
+}
+
+async function readDocx(file) {
+  const zip = await JSZip.loadAsync(await file.arrayBuffer());
+  const xmlFile = zip.file('word/document.xml');
+  if (!xmlFile) throw new Error('无法找到 word/document.xml');
+  const xml = await xmlFile.async('string');
+  const lines = [];
+  for (const para of xml.split(/<w:p[ >\/]/)) {
+    const texts = []; const reg = /<w:t[^>]*>([^<]*)<\/w:t>/g; let m;
+    while ((m = reg.exec(para)) !== null) { if (m[1]) texts.push(m[1]); }
+    const line = texts.join('').trim();
+    if (line) lines.push(line);
+  }
+  return lines.join('\n');
+}
+
+async function readPdf(file) {
+  if (typeof pdfjsLib === 'undefined') throw new Error('PDF解析库未加载，请刷新页面重试');
+  const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+  const pages = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const tc = await page.getTextContent();
+    pages.push(tc.items.map(item => item.str).join(' '));
+  }
+  return pages.join('\n');
+}
+
+function readAsText(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onerror = () => reject(new Error('读取失败'));
+    r.onload = e => resolve(e.target.result || '');
+    r.readAsText(file, 'utf-8');
+  });
+}
+
+function appendDocChip(name, size, state) {
+  removeChip(name);
+  const list = document.getElementById('docList');
+  const ext = name.split('.').pop().toLowerCase();
+  const icon = state === 'loading' ? '⏳'
+    : ext === 'docx' || ext === 'doc' ? '📄'
+    : ext === 'md' ? '📝' : ext === 'pdf' ? '📕' : '📃';
+  const sizeStr = size > 1024*1024 ? (size/1024/1024).toFixed(1)+'MB' : Math.round(size/1024)+'KB';
+  const chip = document.createElement('div');
+  chip.className = 'doc-chip ' + state;
+  chip.id = 'chip_' + chipId(name);
+  chip.innerHTML = `<span class="chip-icon">${icon}</span><span class="name" title="${name}">${name}</span><span class="size">${sizeStr}</span><button type="button" onclick="removeDoc('${name.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">×</button>`;
+  list.appendChild(chip);
+}
+
+function updateChipState(name, state) {
+  const chip = document.getElementById('chip_' + chipId(name));
+  if (!chip) return;
+  chip.className = 'doc-chip ' + state;
+  const ext = name.split('.').pop().toLowerCase();
+  chip.querySelector('.chip-icon').textContent =
+    ext === 'docx' || ext === 'doc' ? '📄' : ext === 'md' ? '📝' : ext === 'pdf' ? '📕' : '📃';
+}
+
+function removeChip(name) { document.getElementById('chip_' + chipId(name))?.remove(); }
+function chipId(name) { return name.replace(/[^a-zA-Z0-9]/g, '_'); }
+
+function removeDoc(name) {
+  if (courseDocs[currentCourseId])
+    courseDocs[currentCourseId] = courseDocs[currentCourseId].filter(d => d.name !== name);
+  removeChip(name);
+  updateDocCount();
+  saveToStorage();
+}
+
+function updateDocCount() {
+  document.getElementById('docCountBadge').textContent =
+    (courseDocs[currentCourseId] || []).length + ' 个文档';
+}
+
+// ============================================================
+// 任务管理
+// ============================================================
+function addTask() {
+  const c = getCurrentCourse();
+  if (!c) return;
+  taskSeq++;
+  const task = { id: taskSeq, title: '', material: '', status: 'wait', result: '', refName: '', errorMsg: '' };
+  c.tasks.push(task);
+  document.getElementById('tasksWrap').appendChild(buildTaskCard(task));
+  saveToStorage();
+}
+
+function deleteTask(id) {
+  const c = getCurrentCourse();
+  if (c) c.tasks = c.tasks.filter(t => t.id !== id);
+  document.getElementById('task_' + id)?.remove();
+
+  if (activeViewId === id) {
+    const next = c?.tasks.find(t => t.status === 'done' || t.status === 'run');
+    activeViewId = next?.id ?? null;
+    if (activeViewId) {
+      document.getElementById('task_' + activeViewId)?.classList.add('viewing');
+    }
+    renderRightPanel();
+  } else {
+    renderRightPanel(); // 更新 nav pills
+  }
+  updateExportBtn();
+  saveToStorage();
+}
+
+function syncTask(id) {
+  const c = getCurrentCourse();
+  if (!c) return;
+  const t = c.tasks.find(t => t.id === id);
+  if (t) {
+    t.title = document.getElementById('tt_' + id)?.value || '';
+    t.material = document.getElementById('tm_' + id)?.value || '';
+    saveToStorage();
+  }
+}
+
+function setTaskStatus(id, status) {
+  const badge = document.getElementById('badge_' + id);
+  const card = document.getElementById('task_' + id);
+  if (!badge || !card) return;
+  const map = { wait:['badge-wait','待生成'], run:['badge-run','生成中…'], done:['badge-done','已完成'], error:['badge-err','出错了'] };
+  badge.className = 'task-badge ' + map[status][0];
+  badge.textContent = map[status][1];
+  let cls = 'task-card';
+  if (status === 'run')  cls += ' running';
+  if (status === 'done') cls += ' done';
+  if (id === activeViewId) cls += ' viewing';
+  card.className = cls;
+  const c = getCurrentCourse();
+  if (c) { const t = c.tasks.find(t => t.id === id); if (t) t.status = status; }
+}
+
+// ============================================================
+// 匹配课程资料
+// ============================================================
+function findRelevantDoc(title, material) {
+  const docs = courseDocs[currentCourseId] || [];
+  if (docs.length === 0) return null;
+  const words = (title + ' ' + material).toLowerCase()
+    .split(/[\s，。？！、：；""''（）【】\n]+/).filter(w => w.length >= 2);
+  let best = null, bestScore = -1;
+  for (const doc of docs) {
+    const text = doc.content.toLowerCase();
+    let score = 0;
+    for (const w of words) {
+      score += text.split(w).length - 1;
+      if (doc.name.toLowerCase().includes(w)) score += 8;
+    }
+    if (score > bestScore) { bestScore = score; best = doc; }
+  }
+  return best || docs[0];
+}
+
+// ============================================================
+// 生成
+// ============================================================
+async function generateAll() {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  if (!apiKey) { alert('请先填写 API Key'); return; }
+
+  const c = getCurrentCourse();
+  if (!c) { alert('请先选择或创建课程'); return; }
+  if (!c.prompt.trim()) { alert('请先填写并保存课程专属提示词'); return; }
+
+  c.tasks.forEach(t => syncTask(t.id));
+  const valid = c.tasks.filter(t => t.title.trim() && t.material.trim() && t.status === 'wait');
+  if (valid.length === 0) { alert('没有待生成的任务（需要标题+素材，且状态为"待生成"）'); return; }
+
+  const docs = courseDocs[currentCourseId] || [];
+  if (docs.length === 0 && !confirm('还未上传课程文档，课程植入内容无法保证准确。\n确认继续？')) return;
+
+  isGenerating = true;
+  const btn = document.getElementById('genBtn');
+  btn.disabled = true;
+  renderCourseTabs();
+
+  for (let i = 0; i < valid.length; i++) {
+    btn.textContent = `生成中 (${i + 1}/${valid.length})…`;
+    await generateOne(valid[i], apiKey, c.prompt);
+  }
+
+  isGenerating = false;
+  btn.disabled = false;
+  btn.textContent = '开始生成文章';
+  renderCourseTabs();
+  updateExportBtn();
+}
+
+async function generateOne(task, apiKey, promptText) {
+  const doc = findRelevantDoc(task.title, task.material);
+  task.refName = doc ? doc.name : '';
+  const courseCtx = doc
+    ? `\n\n【课程资料参考 - 来源：${doc.name}】\n${doc.content.slice(0, 3500)}\n\n⚠️ 所有课程植入内容（讲次名称、工具名称、案例细节）必须来自上方资料，不得编造。`
+    : '';
+
+  setTaskStatus(task.id, 'run');
+  setActiveView(task.id);  // 自动切换到当前生成任务
+
+  try {
+    const resp = await fetch('https://aicanapi.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: getModel(),
+        max_tokens: 4096,
+        stream: true,
+        system: promptText + courseCtx,
+        messages: [{ role: 'user', content: `标题：${task.title}\n\n素材：${task.material}` }]
+      })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.error?.message || 'HTTP ' + resp.status);
+    }
+
+    // 准备流式展示区
+    if (activeViewId === task.id) {
+      document.getElementById('singleLoading').style.display = 'none';
+      const textEl = document.getElementById('singleText');
+      textEl.style.display = 'block';
+      textEl.classList.add('streaming');
+      textEl.innerHTML = '';
+    }
+
+    const cursor = document.createElement('span');
+    cursor.className = 'cursor';
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let full = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      for (const line of decoder.decode(value, { stream: true }).split('\n')) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if (!data || data === '[DONE]') continue;
+        try {
+          const parsed = JSON.parse(data);
+          const chunk = parsed.delta?.text || parsed.choices?.[0]?.delta?.content || '';
+          if (chunk) {
+            full += chunk;
+            // 只在当前查看的任务上更新 DOM
+            if (activeViewId === task.id) {
+              const textEl = document.getElementById('singleText');
+              if (textEl) {
+                const escaped = full.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                textEl.innerHTML = escaped;
+                textEl.appendChild(cursor);
+                document.getElementById('singleBody').scrollTop = 999999;
+              }
+            }
+          }
+        } catch(e) {}
+      }
+    }
+
+    cursor.remove();
+    if (!full) throw new Error('未收到任何内容，请检查 API Key 和模型名称是否正确');
+
+    task.result = full;
+    task.truncated = isLikelyTruncated(full);
+    setTaskStatus(task.id, 'done');
+    saveToStorage(); // 每篇完成立即持久化，防止刷新丢失
+
+    // 渲染 Markdown（无论是否是当前查看，都存好；若是当前查看则立即渲染）
+    if (activeViewId === task.id) {
+      const textEl = document.getElementById('singleText');
+      if (textEl) { textEl.classList.remove('streaming'); textEl.innerHTML = marked.parse(full); }
+    }
+    renderRightPanel(); // 更新 nav pills
+
+  } catch(err) {
+    task.errorMsg = err.message || '请求失败';
+    setTaskStatus(task.id, 'error');
+    renderRightPanel();
+  }
+}
+
+async function retryTask(taskId) {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  if (!apiKey) { alert('请先填写 API Key'); return; }
+  const c = getCurrentCourse();
+  if (!c) return;
+  const task = c.tasks.find(t => t.id === taskId);
+  if (!task) return;
+  task.status = 'wait';
+  task.errorMsg = '';
+  setTaskStatus(taskId, 'wait');
+  isGenerating = true;
+  document.getElementById('genBtn').disabled = true;
+  await generateOne(task, apiKey, c.prompt);
+  isGenerating = false;
+  document.getElementById('genBtn').disabled = false;
+  document.getElementById('genBtn').textContent = '开始生成文章';
+  renderCourseTabs();
+  updateExportBtn();
+}
+
+// 检测文章是否可能未写完（末尾没有合法结束标点）
+function isLikelyTruncated(text) {
+  if (!text) return false;
+  const trimmed = text.trimEnd();
+  if (!trimmed) return false;
+  const last = trimmed[trimmed.length - 1];
+  return !['。', '！', '？', '…', '.', '!', '?', '"', '"', '）', ')', '】', ']'].includes(last);
+}
+
+// 从断点继续续写
+async function continueTask() {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  if (!apiKey) { alert('请先填写 API Key'); return; }
+  const c = getCurrentCourse();
+  if (!c) return;
+  const task = c.tasks.find(t => t.id === activeViewId);
+  if (!task || !task.result) return;
+
+  isGenerating = true;
+  document.getElementById('genBtn').disabled = true;
+  document.getElementById('continueBtn').disabled = true;
+  document.getElementById('truncatedBadge').style.display = 'none';
+
+  const doc = findRelevantDoc(task.title, task.material);
+  const courseCtx = doc
+    ? `\n\n【课程资料参考 - 来源：${doc.name}】\n${doc.content.slice(0, 3500)}\n\n⚠️ 所有课程植入内容必须来自上方资料，不得编造。`
+    : '';
+
+  setTaskStatus(task.id, 'run');
+
+  const textEl = document.getElementById('singleText');
+  const singleLoading = document.getElementById('singleLoading');
+  if (singleLoading) singleLoading.style.display = 'none';
+  if (textEl) {
+    textEl.style.display = 'block';
+    textEl.classList.add('streaming');
+    const escaped = task.result.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    textEl.innerHTML = escaped;
+  }
+
+  try {
+    const resp = await fetch('https://aicanapi.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: getModel(),
+        max_tokens: 4096,
+        stream: true,
+        system: c.prompt + courseCtx,
+        messages: [
+          { role: 'user', content: `标题：${task.title}\n\n素材：${task.material}` },
+          { role: 'assistant', content: task.result },
+          { role: 'user', content: '请继续写完上面未完成的内容，从中断处直接接续，不要重复已有内容。' }
+        ]
+      })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.error?.message || 'HTTP ' + resp.status);
+    }
+
+    const cursor = document.createElement('span');
+    cursor.className = 'cursor';
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let extra = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      for (const line of decoder.decode(value, { stream: true }).split('\n')) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if (!data || data === '[DONE]') continue;
+        try {
+          const parsed = JSON.parse(data);
+          const chunk = parsed.delta?.text || parsed.choices?.[0]?.delta?.content || '';
+          if (chunk) {
+            extra += chunk;
+            if (activeViewId === task.id && textEl) {
+              const combined = task.result + extra;
+              const escaped = combined.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+              textEl.innerHTML = escaped;
+              textEl.appendChild(cursor);
+              document.getElementById('singleBody').scrollTop = 999999;
+            }
+          }
+        } catch(e) {}
+      }
+    }
+
+    cursor.remove();
+    if (!extra) throw new Error('未收到续写内容');
+
+    task.result = task.result + extra;
+    task.truncated = isLikelyTruncated(task.result);
+    setTaskStatus(task.id, 'done');
+    if (activeViewId === task.id && textEl) {
+      textEl.classList.remove('streaming');
+      textEl.innerHTML = marked.parse(task.result);
+    }
+    saveToStorage();
+    renderRightPanel();
+
+  } catch(err) {
+    task.errorMsg = err.message || '续写失败';
+    setTaskStatus(task.id, 'error');
+    renderRightPanel();
+  } finally {
+    isGenerating = false;
+    document.getElementById('genBtn').disabled = false;
+    document.getElementById('continueBtn').disabled = false;
+    renderCourseTabs();
+    updateExportBtn();
+  }
+}
+
+async function copyActiveResult() {
+  const c = getCurrentCourse();
+  const task = c?.tasks.find(t => t.id === activeViewId);
+  if (!task?.result) { alert('没有可复制的内容'); return; }
+  try {
+    await navigator.clipboard.writeText(task.result);
+    const btn = document.getElementById('singleCopyBtn');
+    btn.textContent = '已复制 ✓';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = '复制 MD'; btn.classList.remove('copied'); }, 2000);
+  } catch { alert('请手动选中文字复制'); }
+}
+
+// ============================================================
+// 批量导出
+// ============================================================
+
+// 去掉 Markdown 符号，保留纯文字（用于 Excel）
+function stripMarkdown(text) {
+  return text
+    .replace(/#{1,6}\s+(.*)/g, '$1')
+    .replace(/\*\*([^*\n]+)\*\*/g, '$1')
+    .replace(/\*([^*\n]+)\*/g, '$1')
+    .replace(/~~([^~\n]+)~~/g, '$1')
+    .replace(/`([^`\n]+)`/g, '$1')
+    .replace(/^>\s?/gm, '')
+    .replace(/^-{3,}$/gm, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/^[*\-+]\s+/gm, '')
+    .replace(/^\d+\.\s+/gm, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+// 导出 Excel (.xlsx)
+function exportToXlsx() {
+  const c = getCurrentCourse();
+  const done = c?.tasks.filter(t => t.status === 'done' && t.result) || [];
+  if (done.length === 0) { alert('暂无已生成的文章'); return; }
+  if (typeof XLSX === 'undefined') { alert('XLSX 库未加载，请刷新页面重试'); return; }
+
+  const headers = ['序号', '标题', '文案内容', '字数'];
+  const dataRows = done.map((task, i) => {
+    const content = task.result;
+    const charCount = content.replace(/\s/g, '').length;
+    return [i + 1, task.title || ('任务' + task.id), content, charCount];
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...dataRows]);
+
+  // 列宽
+  ws['!cols'] = [
+    { wch: 6 },
+    { wch: 36 },
+    { wch: 85 },
+    { wch: 8 },
+  ];
+
+  // 内容行高（让长文本好看一些）
+  ws['!rows'] = [{ hpt: 20 }, ...done.map(() => ({ hpt: 120 }))];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '文案列表');
+
+  const filename = sanitizeName(c.name || '文案') + `_${done.length}篇.xlsx`;
+  XLSX.writeFile(wb, filename);
+}
+
+async function exportAllMd() {
+  const c = getCurrentCourse();
+  const done = c?.tasks.filter(t => t.status === 'done' && t.result) || [];
+  if (done.length === 0) { alert('暂无已生成的文章'); return; }
+
+  if (done.length === 1) {
+    downloadFile(sanitizeName(done[0].title || '任务' + done[0].id) + '.md', done[0].result);
+    return;
+  }
+
+  // 多篇打包 zip
+  const zip = new JSZip();
+  done.forEach((task, i) => {
+    zip.file(`${String(i + 1).padStart(2, '0')}_${sanitizeName(task.title || '任务' + task.id)}.md`, task.result);
+  });
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = sanitizeName(c.name || '文案') + `_${done.length}篇.zip`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function downloadFile(filename, content) {
+  const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function sanitizeName(name) {
+  return (name || '未命名').replace(/[\\/:*?"<>|]/g, '_').trim().substring(0, 60);
+}
+
+// ============================================================
+// API Key 持久化
+// ============================================================
+const LS_APIKEY = 'lanma_apikey';
+const LS_MODEL  = 'lanma_model';
+
+function onApiKeyInput() {
+  const key = document.getElementById('apiKey').value.trim();
+  if (key) {
+    localStorage.setItem(LS_APIKEY, key);
+    document.getElementById('apiSavedBadge').classList.add('show');
+  } else {
+    localStorage.removeItem(LS_APIKEY);
+    document.getElementById('apiSavedBadge').classList.remove('show');
+  }
+}
+
+function onModelChange() {
+  localStorage.setItem(LS_MODEL, document.getElementById('modelSelect').value);
+}
+
+function getModel() {
+  return document.getElementById('modelSelect').value;
+}
+
+function loadApiKey() {
+  const saved = localStorage.getItem(LS_APIKEY);
+  if (saved) {
+    document.getElementById('apiKey').value = saved;
+    document.getElementById('apiSavedBadge').classList.add('show');
+  }
+  const savedModel = localStorage.getItem(LS_MODEL);
+  if (savedModel) {
+    document.getElementById('modelSelect').value = savedModel;
+  }
+}
+
+// ============================================================
+// 批量导入 Modal
+// ============================================================
+let parsedImportRows = [];
+
+function openBatchModal() {
+  parsedImportRows = [];
+  document.getElementById('importPaste').value = '';
+  document.getElementById('importPreview').style.display = 'none';
+  document.getElementById('importConfirmBtn').disabled = true;
+  document.getElementById('importConfirmBtn').textContent = '导入任务';
+  document.getElementById('csvFileName').textContent = '支持 .csv / .tsv，请使用 UTF-8 编码保存';
+  switchImportTab('paste');
+  document.getElementById('batchModal').style.display = 'flex';
+}
+
+function closeBatchModal() {
+  document.getElementById('batchModal').style.display = 'none';
+}
+
+function onModalOverlayClick(e) {
+  if (e.target === document.getElementById('batchModal')) closeBatchModal();
+}
+
+function switchImportTab(tab) {
+  document.getElementById('tabPaste').classList.toggle('active', tab === 'paste');
+  document.getElementById('tabFile').classList.toggle('active', tab === 'file');
+  document.getElementById('importPasteArea').style.display = tab === 'paste' ? '' : 'none';
+  document.getElementById('importFileArea').style.display = tab === 'file' ? '' : 'none';
+}
+
+async function onCsvFileChange(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  document.getElementById('csvFileName').textContent = '正在读取：' + file.name;
+  e.target.value = '';
+  try {
+    if (ext === 'xlsx' || ext === 'xls') {
+      if (typeof XLSX === 'undefined') throw new Error('XLSX 解析库未加载，请检查网络后刷新重试');
+      const data = await file.arrayBuffer();
+      const wb = XLSX.read(data, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      // 转为二维数组，空单元格填空字符串
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+      // 转成 TSV 放入粘贴框，复用现有解析管道
+      document.getElementById('importPaste').value = rows.map(r => r.join('\t')).join('\n');
+    } else {
+      // CSV / TSV / TXT 按文本读取
+      const text = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = ev => res(ev.target.result || '');
+        r.onerror = () => rej(new Error('读取失败'));
+        r.readAsText(file, 'utf-8');
+      });
+      document.getElementById('importPaste').value = text;
+    }
+    previewImportData();
+    switchImportTab('paste');
+    document.getElementById('csvFileName').textContent = file.name + '  ✓ 读取成功';
+  } catch(err) {
+    document.getElementById('csvFileName').textContent = '读取失败：' + err.message;
+  }
+}
+
+// 解析 CSV 单行（处理带引号字段）
+function parseCsvLine(line) {
+  const result = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQ && line[i + 1] === '"') { cur += '"'; i++; }
+      else inQ = !inQ;
+    } else if (ch === ',' && !inQ) {
+      result.push(cur.trim()); cur = '';
+    } else {
+      cur += ch;
+    }
+  }
+  result.push(cur.trim());
+  return result;
+}
+
+// 解析表格文本 → [{title, material}]
+function parseTableData(text) {
+  const lines = text.trim().split(/\r?\n/).filter(l => l.trim());
+  if (lines.length === 0) return [];
+
+  // 自动检测分隔符（制表符 or 逗号）
+  const firstLine = lines[0];
+  const useTab = (firstLine.match(/\t/g) || []).length > 0;
+
+  const rows = lines.map(line =>
+    useTab ? line.split('\t').map(s => s.trim()) : parseCsvLine(line)
+  );
+
+  // 自动识别并跳过表头行
+  let startIdx = 0;
+  if (rows.length > 0) {
+    const h0 = (rows[0][0] || '').toLowerCase().trim();
+    const h1 = (rows[0][1] || '').toLowerCase().trim();
+    if (
+      h0.includes('标题') || h0.includes('title') || h0 === '#' || h0 === 'no' ||
+      h1.includes('素材') || h1.includes('material') || h1.includes('内容')
+    ) startIdx = 1;
+  }
+
+  return rows.slice(startIdx)
+    .filter(r => r.length >= 2 && (r[0] || r[1]))
+    .map(r => ({ title: r[0] || '', material: r[1] || '' }));
+}
+
+function previewImportData() {
+  const text = document.getElementById('importPaste').value;
+  parsedImportRows = parseTableData(text);
+
+  const previewEl = document.getElementById('importPreview');
+  const confirmBtn = document.getElementById('importConfirmBtn');
+
+  if (parsedImportRows.length === 0) {
+    previewEl.style.display = 'none';
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = '导入任务';
+    return;
+  }
+
+  previewEl.style.display = '';
+  confirmBtn.disabled = false;
+  confirmBtn.textContent = '导入 ' + parsedImportRows.length + ' 条任务';
+  document.getElementById('previewCount').textContent = parsedImportRows.length + ' 条';
+
+  const tbody = document.getElementById('previewTableBody');
+  tbody.innerHTML = '';
+  parsedImportRows.forEach((row, i) => {
+    const tr = document.createElement('tr');
+    const mat = row.material.length > 100 ? row.material.substring(0, 100) + '…' : row.material;
+    tr.innerHTML =
+      `<td style="color:#8a7560;text-align:center;width:28px">${i + 1}</td>` +
+      `<td class="title-col">${escAttr(row.title)}</td>` +
+      `<td class="material-col"><div class="cell-clamp">${escAttr(mat)}</div></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function confirmBatchImport() {
+  if (parsedImportRows.length === 0) return;
+  const c = getCurrentCourse();
+  if (!c) return;
+
+  const mode = document.querySelector('input[name="importMode"]:checked').value;
+  if (mode === 'replace') {
+    c.tasks = [];
+    document.getElementById('tasksWrap').innerHTML = '';
+  }
+
+  for (const row of parsedImportRows) {
+    taskSeq++;
+    const task = { id: taskSeq, title: row.title, material: row.material, status: 'wait', result: '', refName: '' };
+    c.tasks.push(task);
+    document.getElementById('tasksWrap').appendChild(buildTaskCard(task));
+  }
+
+  saveToStorage();
+  closeBatchModal();
+
+  // 短暂成功反馈
+  const btn = document.getElementById('batchImportBtn');
+  if (btn) {
+    const count = parsedImportRows.length;
+    btn.textContent = `✓ 已导入 ${count} 条`;
+    setTimeout(() => { btn.textContent = '📊 批量导入（表格）'; }, 2500);
+  }
+}
+
+// ============================================================
+// 初始化
+// ============================================================
+function init() {
+  loadApiKey();
+  if (loadFromStorage()) {
+    courses.forEach(c => { if (!courseDocs[c.id]) courseDocs[c.id] = []; });
+    renderCourseTabs();
+    renderCourseArea();
+  } else {
+    courseSeq++;
+    const id = courseSeq;
+    courses.push({ id, name: '默认课程', prompt: '', tasks: [] });
+    courseDocs[id] = [];
+    currentCourseId = id;
+    renderCourseTabs();
+    renderCourseArea();
+    addTask();
+  }
+}
+
+init();
+</script>
+</body>
+</html>
