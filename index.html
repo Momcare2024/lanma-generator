@@ -29,6 +29,21 @@ header {
 .logo { color: #faf7f2; font-size: 18px; font-weight: 700; letter-spacing: 2px; }
 .logo span { color: #e8915a; }
 .logo-sub { color: #665544; font-size: 12px; letter-spacing: 2px; }
+.header-actions { display: flex; gap: 8px; align-items: center; }
+.backup-btn {
+  padding: 6px 14px; border-radius: 7px; font-size: 12px;
+  font-family: inherit; cursor: pointer; transition: all 0.2s;
+  background: none; color: #a89080;
+  border: 1px solid #3a2e24; letter-spacing: 1px;
+}
+.backup-btn:hover { border-color: #e8915a; color: #e8915a; }
+.restore-btn {
+  padding: 6px 14px; border-radius: 7px; font-size: 12px;
+  font-family: inherit; cursor: pointer; transition: all 0.2s;
+  background: none; color: #a89080;
+  border: 1px solid #3a2e24; letter-spacing: 1px;
+}
+.restore-btn:hover { border-color: #4a7c59; color: #6ab87e; }
 
 .container { max-width: 1200px; margin: 0 auto; padding: 28px 20px; }
 
@@ -616,7 +631,11 @@ header {
 
 <header>
   <div class="logo">懒妈方宁 <span>·</span> 文案生成器</div>
-  <div class="logo-sub">小红书内容批量创作</div>
+  <div class="header-actions">
+    <button class="backup-btn" type="button" onclick="exportBackup()">⬇ 导出备份</button>
+    <input type="file" id="restoreInput" accept=".json" style="display:none" onchange="importBackup(event)">
+    <button class="restore-btn" type="button" onclick="document.getElementById('restoreInput').click()">⬆ 恢复备份</button>
+  </div>
 </header>
 
 <div class="container">
@@ -1338,6 +1357,7 @@ function findRelevantDoc(title, material) {
 async function generateAll() {
   const apiKey = document.getElementById('apiKey').value.trim();
   if (!apiKey) { alert('请先填写 API Key'); return; }
+  if (!/^[\x00-\xFF]*$/.test(apiKey)) { alert('API Key 含有非法字符（如中文），请检查后重新粘贴正确的 API Key'); return; }
 
   const c = getCurrentCourse();
   if (!c) { alert('请先选择或创建课程'); return; }
@@ -1467,6 +1487,7 @@ async function generateOne(task, apiKey, promptText) {
 async function retryTask(taskId) {
   const apiKey = document.getElementById('apiKey').value.trim();
   if (!apiKey) { alert('请先填写 API Key'); return; }
+  if (!/^[\x00-\xFF]*$/.test(apiKey)) { alert('API Key 含有非法字符（如中文），请检查后重新粘贴正确的 API Key'); return; }
   const c = getCurrentCourse();
   if (!c) return;
   const task = c.tasks.find(t => t.id === taskId);
@@ -1497,6 +1518,7 @@ function isLikelyTruncated(text) {
 async function continueTask() {
   const apiKey = document.getElementById('apiKey').value.trim();
   if (!apiKey) { alert('请先填写 API Key'); return; }
+  if (!/^[\x00-\xFF]*$/.test(apiKey)) { alert('API Key 含有非法字符（如中文），请检查后重新粘贴正确的 API Key'); return; }
   const c = getCurrentCourse();
   if (!c) return;
   const task = c.tasks.find(t => t.id === activeViewId);
@@ -1711,6 +1733,85 @@ function sanitizeName(name) {
 }
 
 // ============================================================
+// 备份 / 恢复
+// ============================================================
+function exportBackup() {
+  const backup = {
+    version: 2,
+    exportedAt: new Date().toISOString(),
+    courses: courses.map(c => ({
+      id: c.id, name: c.name, prompt: c.prompt,
+      tasks: c.tasks.map(t => ({
+        id: t.id, title: t.title, material: t.material,
+        status: t.status, result: t.result || '',
+        refName: t.refName || '', truncated: t.truncated || false,
+      }))
+    })),
+    courseDocs: (() => {
+      const d = {};
+      for (const [cid, docs] of Object.entries(courseDocs)) {
+        d[cid] = docs.map(doc => ({ name: doc.name, size: doc.size, content: doc.content }));
+      }
+      return d;
+    })(),
+    currentCourseId, courseSeq, taskSeq,
+  };
+
+  const date = new Date().toLocaleDateString('zh-CN').replace(/\//g, '-');
+  downloadFile(`懒妈方宁_备份_${date}.json`, JSON.stringify(backup, null, 2));
+}
+
+function importBackup(e) {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+
+  if (!confirm(`恢复备份将覆盖当前所有数据（课程、提示词、文章等）。\n\n确认恢复「${file.name}」吗？`)) return;
+
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!data.courses || !Array.isArray(data.courses)) throw new Error('备份文件格式不正确');
+
+      // 恢复课程和任务
+      courses = data.courses.map(c => ({
+        ...c,
+        tasks: (c.tasks || []).map(t => ({
+          ...t,
+          status: t.status === 'done' ? 'done' : 'wait',
+          result: t.result || '',
+          refName: t.refName || '',
+          errorMsg: '',
+          truncated: t.truncated || false,
+        }))
+      }));
+      currentCourseId = data.currentCourseId || (courses[0]?.id ?? null);
+      courseSeq = data.courseSeq || courses.length;
+      taskSeq = data.taskSeq || 0;
+
+      // 恢复课程文档
+      courseDocs = {};
+      if (data.courseDocs) {
+        for (const [cid, docs] of Object.entries(data.courseDocs)) {
+          courseDocs[cid] = docs;
+        }
+      }
+      courses.forEach(c => { if (!courseDocs[c.id]) courseDocs[c.id] = []; });
+
+      saveToStorage();
+      activeViewId = null;
+      renderCourseTabs();
+      renderCourseArea();
+      updateExportBtn();
+
+      alert(`✅ 恢复成功！\n共恢复 ${courses.length} 个课程，${courses.reduce((n,c)=>n+c.tasks.length,0)} 条任务。`);
+    } catch(err) {
+      alert('恢复失败：' + err.message + '\n请确认文件是由本工具导出的备份。');
+    }
+  };
+  reader.readAsText(file, 'utf-8');
+}
 // API Key 持久化
 // ============================================================
 const LS_APIKEY = 'lanma_apikey';
