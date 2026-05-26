@@ -790,11 +790,11 @@ header {
   <div class="api-row" id="apiKeyRow">
     <div class="api-main-line">
       <label>API KEY</label>
-      <input class="api-key-input" type="password" id="apiKey" placeholder="粘贴 AICanAPI 的 sk-... 密钥" oninput="onApiKeyInput()">
+      <input class="api-key-input" type="password" id="apiKey" placeholder="粘贴 Claude API 的 sk-... 密钥" oninput="onApiKeyInput()">
       <label>模型</label>
       <select class="model-select" id="modelSelect" onchange="onModelChange()">
-        <option value="claude-sonnet-4-6">Claude Sonnet（推荐）</option>
-        <option value="claude-haiku-4-5">Claude Haiku（省钱）</option>
+        <option value="claude-sonnet-4-6">Claude Sonnet</option>
+        <option value="claude-haiku-4-5">Claude Haiku</option>
       </select>
       <input class="custom-model-input" type="text" id="customModelInput"
              placeholder="输入自定义模型名" oninput="onCustomModelInput()">
@@ -806,7 +806,7 @@ header {
     <div class="advanced-api-panel" id="advancedApiPanel">
       <label>接口模式</label>
       <select class="model-select provider-select" id="providerSelect" onchange="onProviderChange()">
-        <option value="aicanapi">AICanAPI 代理（推荐）</option>
+        <option value="aicanapi">Claude API</option>
         <option value="claude">Claude 官方/兼容</option>
         <option value="openai">OpenAI 兼容</option>
         <option value="gemini">Google Gemini 官方</option>
@@ -1009,15 +1009,13 @@ const GENERATION_TIMEOUT_MS = 120000;
 const STREAM_IDLE_TIMEOUT_MS = 60000;
 const PROVIDER_CONFIG = {
   aicanapi: {
-    keyName: 'AICanAPI',
+    keyName: 'Claude API',
     protocol: 'anthropic',
     endpoint: 'https://aicanapi.com/v1/messages',
-    placeholder: '粘贴 AICanAPI 的 sk-... 令牌',
+    placeholder: '粘贴 Claude API 的 sk-... 密钥',
     models: [
-      ['claude-sonnet-4-6', 'Claude Sonnet（推荐）'],
-      ['claude-haiku-4-5', 'Claude Haiku（省钱）'],
-      ['gemini-2.5-flash', 'Gemini 2.5 Flash（快）'],
-      ['gemini-2.5-pro', 'Gemini 2.5 Pro'],
+      ['claude-sonnet-4-6', 'Claude Sonnet'],
+      ['claude-haiku-4-5', 'Claude Haiku'],
       [CUSTOM_MODEL_VALUE, '自定义模型名'],
     ],
   },
@@ -1027,8 +1025,8 @@ const PROVIDER_CONFIG = {
     endpoint: 'https://aicanapi.com/v1/messages',
     placeholder: '粘贴 Claude 兼容 API Key（如 sk-ant-...）',
     models: [
-      ['claude-haiku-4-5', 'Haiku · 省钱'],
-      ['claude-sonnet-4-6', 'Sonnet · 精品'],
+      ['claude-sonnet-4-6', 'Claude Sonnet'],
+      ['claude-haiku-4-5', 'Claude Haiku'],
       [CUSTOM_MODEL_VALUE, '自定义模型名'],
     ],
   },
@@ -2194,7 +2192,7 @@ async function readProviderText(request, resp, onText) {
     const { done, value } = await readStreamChunk(
       reader,
       remainingMs,
-      '模型超过 60 秒没有返回有效文字，已自动停止。请换一个模型、检查 AICanAPI 令牌分组，或稍后重试。'
+      '模型超过 60 秒没有返回有效文字，已自动停止。请检查 Claude API 密钥、模型，或稍后重试。'
     );
     if (done) break;
     const decoded = decoder.decode(value, { stream: true });
@@ -2769,26 +2767,22 @@ function updateApiHelpText(provider, model) {
   const help = document.getElementById('apiHelpText');
   if (!help) return;
   if (provider === 'aicanapi') {
-    if ((model || '').startsWith('gemini')) {
-      help.textContent = 'AICanAPI 填法：粘贴代理站生成的 sk-... 令牌；模型选 Gemini 时，令牌分组要选支持 Gemini 的分组。';
-    } else {
-      help.textContent = 'AICanAPI 填法：在代理站创建令牌时选 Claude-专用 官key；这里粘贴 sk-...，模型选 Claude Sonnet 或 Haiku。';
-    }
+    help.textContent = '填你创建的 Claude API 密钥即可；网站会按 Claude 接口直接调用当前选择的模型。';
     return;
   }
   if (provider === 'claude') {
-    help.textContent = '只有官方 Claude/Anthropic 或完全兼容的密钥才选这里；AICanAPI 生成的 sk-... 建议切回 AICanAPI 代理。';
+    help.textContent = '只有官方 Claude/Anthropic 或完全兼容的密钥才选这里；平时用默认 Claude API 即可。';
     return;
   }
   if (provider === 'gemini') {
-    help.textContent = '这里填写 Google AI Studio 的官方 Gemini Key；AICanAPI 代理密钥请切回 AICanAPI 代理。';
+    help.textContent = '这里填写 Google AI Studio 的官方 Gemini Key；Claude API 密钥请切回 Claude API。';
     return;
   }
   if (provider === 'custom') {
     help.textContent = '自定义接口按 OpenAI 兼容格式发送；需要填写完整接口地址和模型名。';
     return;
   }
-  help.textContent = '这里填写对应平台的官方或兼容 API Key；如果你用的是 AICanAPI 代理，建议切回 AICanAPI 代理。';
+  help.textContent = '这里填写对应平台的官方或兼容 API Key；平时用 Claude API 的话不用打开高级设置。';
 }
 
 function updateProviderUi() {
