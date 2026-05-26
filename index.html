@@ -312,7 +312,17 @@ header {
 .upload-btn:hover { background: #a8541f; }
 .upload-hint { font-size: 12px; color: #8a7560; line-height: 1.6; }
 .upload-hint strong { color: #1a1208; }
-.doc-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.doc-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  max-height: 132px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.doc-list::-webkit-scrollbar { width: 3px; }
+.doc-list::-webkit-scrollbar-thumb { background: #ddd5c8; border-radius: 2px; }
 .doc-chip {
   display: flex;
   align-items: center;
@@ -329,6 +339,14 @@ header {
 .doc-chip .size { color: #8a7560; font-size: 11px; }
 .doc-chip button { background: none; border: none; cursor: pointer; color: #8a7560; font-size: 14px; padding: 0; line-height: 1; }
 .doc-chip button:hover { color: #c0392b; }
+.doc-status {
+  display: none;
+  margin-top: 8px;
+  color: #4a7c59;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.doc-status.show { display: block; }
 .storage-notice {
   display: none;
   margin-top: 10px;
@@ -862,6 +880,7 @@ header {
       </div>
     </div>
     <div class="doc-list" id="docList"></div>
+    <div class="doc-status" id="docStatus"></div>
     <div class="storage-notice" id="storageNotice"></div>
   </div>
 
@@ -1315,6 +1334,7 @@ function renderDocList() {
     appendDocChip(doc.name, doc.size, 'ok');
   }
   updateDocCount();
+  updateDocStatus();
 }
 
 function renderTaskList() {
@@ -1548,12 +1568,20 @@ function onFileChange(e) {
 async function processFiles(files) {
   if (!courseDocs[currentCourseId]) courseDocs[currentCourseId] = [];
   const docs = courseDocs[currentCourseId];
+  let successCount = 0;
+  let skippedCount = 0;
+  let failedCount = 0;
+  showDocStatus(`正在读取 ${files.length} 个文件…`, 'loading');
   for (const file of Array.from(files)) {
     const ext = file.name.split('.').pop().toLowerCase();
     if (!['docx', 'md', 'txt', 'pdf'].includes(ext)) {
+      failedCount++;
       alert('不支持的文件格式：' + file.name); continue;
     }
-    if (docs.find(d => d.name === file.name)) continue;
+    if (docs.find(d => d.name === file.name)) {
+      skippedCount++;
+      continue;
+    }
     appendDocChip(file.name, file.size, 'loading');
     try {
       let content = '';
@@ -1563,13 +1591,16 @@ async function processFiles(files) {
       if (!content || content.trim().length < 10) throw new Error('文件内容为空或无法解析');
       docs.push({ name: file.name, size: file.size, content });
       updateChipState(file.name, 'ok');
+      successCount++;
       saveToStorage();
     } catch(err) {
+      failedCount++;
       removeChip(file.name);
       alert('读取失败：' + file.name + '\n' + err.message);
     }
   }
   updateDocCount();
+  updateDocStatus(successCount, skippedCount, failedCount);
 }
 
 async function readDocx(file) {
@@ -1647,19 +1678,44 @@ function updateChipState(name, state) {
 }
 
 function removeChip(name) { document.getElementById('chip_' + chipId(name))?.remove(); }
-function chipId(name) { return name.replace(/[^a-zA-Z0-9]/g, '_'); }
+function chipId(name) {
+  return Array.from(name || '').map(ch => ch.codePointAt(0).toString(36)).join('_');
+}
 
 function removeDoc(name) {
   if (courseDocs[currentCourseId])
     courseDocs[currentCourseId] = courseDocs[currentCourseId].filter(d => d.name !== name);
   removeChip(name);
   updateDocCount();
+  updateDocStatus();
   saveToStorage();
 }
 
 function updateDocCount() {
   document.getElementById('docCountBadge').textContent =
     (courseDocs[currentCourseId] || []).length + ' 个文档';
+}
+
+function showDocStatus(text, type = 'ok') {
+  const el = document.getElementById('docStatus');
+  if (!el) return;
+  el.textContent = text || '';
+  el.classList.toggle('show', !!text);
+  el.style.color = type === 'loading' ? '#8a7560' : (type === 'error' ? '#c0392b' : '#4a7c59');
+}
+
+function updateDocStatus(successCount = 0, skippedCount = 0, failedCount = 0) {
+  const total = (courseDocs[currentCourseId] || []).length;
+  if (successCount || skippedCount || failedCount) {
+    const parts = [];
+    if (successCount) parts.push(`成功上传 ${successCount} 个`);
+    if (skippedCount) parts.push(`已跳过重复 ${skippedCount} 个`);
+    if (failedCount) parts.push(`失败 ${failedCount} 个`);
+    parts.push(`当前资料库共 ${total} 个文档`);
+    showDocStatus(parts.join('，'), failedCount ? 'error' : 'ok');
+    return;
+  }
+  showDocStatus(total ? `已加载 ${total} 个文档，生成时会自动检索这些资料。` : '');
 }
 
 // ============================================================
