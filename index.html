@@ -52,6 +52,7 @@ header {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
   background: #fff;
   border: 1px solid #ddd5c8;
   border-radius: 10px;
@@ -78,6 +79,20 @@ header {
   white-space: nowrap; flex-shrink: 0;
 }
 .model-select:focus { border-color: #c0622a; }
+.custom-model-input {
+  flex: 0 1 220px !important;
+  min-width: 180px;
+  display: none;
+}
+.custom-model-input.show { display: block; }
+.endpoint-input {
+  flex: 1 1 420px !important;
+  min-width: 280px;
+  display: none;
+}
+.endpoint-input.show { display: block; }
+.endpoint-label { display: none; }
+.endpoint-label.show { display: inline-block; }
 
 /* 课程Tab栏 */
 .course-tabs-row {
@@ -738,7 +753,11 @@ header {
     <label>服务商</label>
     <select class="model-select" id="providerSelect" onchange="onProviderChange()">
       <option value="claude">Claude 兼容</option>
+      <option value="openai">OpenAI 兼容</option>
       <option value="gemini">Google Gemini</option>
+      <option value="openrouter">OpenRouter</option>
+      <option value="deepseek">DeepSeek</option>
+      <option value="custom">自定义接口</option>
     </select>
     <label>API KEY</label>
     <input type="password" id="apiKey" placeholder="粘贴你的 API Key" oninput="onApiKeyInput()">
@@ -746,6 +765,11 @@ header {
       <option value="claude-haiku-4-5">Haiku · 省钱</option>
       <option value="claude-sonnet-4-6">Sonnet · 精品</option>
     </select>
+    <input class="custom-model-input" type="text" id="customModelInput"
+           placeholder="输入自定义模型名" oninput="onCustomModelInput()">
+    <label class="endpoint-label" id="endpointLabel">接口地址</label>
+    <input class="endpoint-input" type="text" id="apiEndpointInput"
+           placeholder="https://api.example.com/v1/chat/completions" oninput="onEndpointInput()">
     <span class="api-saved-badge" id="apiSavedBadge">🔒 已记住</span>
     <button class="clear-api-btn" type="button" onclick="clearApiKey()">清除</button>
   </div>
@@ -930,6 +954,7 @@ let promptDirty = false;
 let generationStopRequested = false;
 let activeAbortController = null;
 
+const CUSTOM_MODEL_VALUE = '__custom__';
 const KB_CHUNK_SIZE = 1200;
 const KB_CHUNK_OVERLAP = 160;
 const KB_MAX_EXCERPTS = 8;
@@ -938,19 +963,72 @@ const GENERATION_TIMEOUT_MS = 120000;
 const PROVIDER_CONFIG = {
   claude: {
     keyName: 'Claude 兼容',
+    protocol: 'anthropic',
+    endpoint: 'https://aicanapi.com/v1/messages',
     placeholder: '粘贴 Claude 兼容 API Key（如 sk-ant-...）',
     models: [
       ['claude-haiku-4-5', 'Haiku · 省钱'],
       ['claude-sonnet-4-6', 'Sonnet · 精品'],
+      [CUSTOM_MODEL_VALUE, '自定义模型名'],
+    ],
+  },
+  openai: {
+    keyName: 'OpenAI 兼容',
+    protocol: 'openai',
+    endpoint: 'https://api.openai.com/v1/chat/completions',
+    placeholder: '粘贴 OpenAI 或兼容服务的 API Key',
+    models: [
+      ['gpt-4o-mini', 'GPT-4o mini'],
+      ['gpt-4o', 'GPT-4o'],
+      ['o4-mini', 'o4-mini'],
+      [CUSTOM_MODEL_VALUE, '自定义模型名'],
     ],
   },
   gemini: {
     keyName: 'Google Gemini',
+    protocol: 'gemini',
+    endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent?alt=sse',
     placeholder: '粘贴 Google AI Studio 的 Gemini API Key',
     models: [
       ['gemini-3.5-flash', 'Gemini 3.5 Flash'],
       ['gemini-2.5-flash', 'Gemini 2.5 Flash'],
       ['gemini-2.5-pro', 'Gemini 2.5 Pro'],
+      [CUSTOM_MODEL_VALUE, '自定义模型名'],
+    ],
+  },
+  openrouter: {
+    keyName: 'OpenRouter',
+    protocol: 'openai',
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    placeholder: '粘贴 OpenRouter API Key',
+    models: [
+      ['openai/gpt-4o-mini', 'OpenAI GPT-4o mini'],
+      ['anthropic/claude-3.5-sonnet', 'Claude 3.5 Sonnet'],
+      ['google/gemini-2.5-flash', 'Gemini 2.5 Flash'],
+      ['deepseek/deepseek-chat', 'DeepSeek Chat'],
+      [CUSTOM_MODEL_VALUE, '自定义模型名'],
+    ],
+  },
+  deepseek: {
+    keyName: 'DeepSeek',
+    protocol: 'openai',
+    endpoint: 'https://api.deepseek.com/chat/completions',
+    placeholder: '粘贴 DeepSeek API Key',
+    models: [
+      ['deepseek-v4-flash', 'DeepSeek V4 Flash'],
+      ['deepseek-v4-pro', 'DeepSeek V4 Pro'],
+      ['deepseek-chat', 'DeepSeek Chat（旧名）'],
+      [CUSTOM_MODEL_VALUE, '自定义模型名'],
+    ],
+  },
+  custom: {
+    keyName: '自定义接口',
+    protocol: 'openai',
+    endpoint: '',
+    endpointEditable: true,
+    placeholder: '粘贴该接口的 API Key',
+    models: [
+      [CUSTOM_MODEL_VALUE, '自定义模型名'],
     ],
   },
 };
@@ -1825,9 +1903,10 @@ async function fetchWithTimeout(url, options, timeoutMs) {
 function buildProviderRequest(apiKey, promptText, retrieval, turns) {
   const provider = getProvider();
   const model = getModel();
+  const config = PROVIDER_CONFIG[provider] || PROVIDER_CONFIG.claude;
   const systemText = buildSystemPrompt(promptText, retrieval.refs.length > 0);
 
-  if (provider === 'gemini') {
+  if (config.protocol === 'gemini') {
     const contents = turns.map((turn, i) => ({
       role: turn.role === 'assistant' ? 'model' : 'user',
       parts: [{
@@ -1836,7 +1915,8 @@ function buildProviderRequest(apiKey, promptText, retrieval, turns) {
     }));
     return {
       provider,
-      url: `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
+      protocol: config.protocol,
+      url: config.endpoint.replace('{model}', encodeURIComponent(model)),
       options: {
         method: 'POST',
         headers: {
@@ -1851,9 +1931,41 @@ function buildProviderRequest(apiKey, promptText, retrieval, turns) {
     };
   }
 
+  if (config.protocol === 'openai') {
+    const endpoint = getProviderEndpoint(provider);
+    if (!endpoint) throw new Error('请先填写自定义接口地址');
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    };
+    if (provider === 'openrouter') {
+      headers['HTTP-Referer'] = (typeof location !== 'undefined' && location.origin && location.origin !== 'null') ? location.origin : 'https://momcare2024.github.io';
+      headers['X-Title'] = 'Lanma Copy Generator';
+    }
+    return {
+      provider,
+      protocol: config.protocol,
+      url: endpoint,
+      options: {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          model,
+          max_tokens: 4096,
+          stream: true,
+          messages: [
+            { role: 'system', content: systemText },
+            ...turns,
+          ],
+        }),
+      },
+    };
+  }
+
   return {
     provider,
-    url: 'https://aicanapi.com/v1/messages',
+    protocol: config.protocol,
+    url: config.endpoint,
     options: {
       method: 'POST',
       headers: {
@@ -2368,6 +2480,8 @@ function importBackup(e) {
 const LS_APIKEY = 'lanma_apikey';
 const LS_MODEL  = 'lanma_model';
 const LS_PROVIDER = 'lanma_provider';
+const LS_ENDPOINT = 'lanma_endpoint';
+const LS_CUSTOM_MODEL = 'lanma_custom_model';
 
 function onApiKeyInput() {
   const key = document.getElementById('apiKey').value.trim();
@@ -2399,6 +2513,14 @@ function getModelStorageKey(provider = getProvider()) {
   return provider === 'claude' ? LS_MODEL : `${LS_MODEL}_${provider}`;
 }
 
+function getEndpointStorageKey(provider = getProvider()) {
+  return `${LS_ENDPOINT}_${provider}`;
+}
+
+function getCustomModelStorageKey(provider = getProvider()) {
+  return `${LS_CUSTOM_MODEL}_${provider}`;
+}
+
 function onProviderChange() {
   const provider = getProvider();
   localStorage.setItem(LS_PROVIDER, provider);
@@ -2410,6 +2532,9 @@ function updateProviderUi() {
   const config = PROVIDER_CONFIG[provider] || PROVIDER_CONFIG.claude;
   const modelSelect = document.getElementById('modelSelect');
   const apiInput = document.getElementById('apiKey');
+  const customModelInput = document.getElementById('customModelInput');
+  const endpointInput = document.getElementById('apiEndpointInput');
+  const endpointLabel = document.getElementById('endpointLabel');
   modelSelect.innerHTML = '';
   for (const [value, label] of config.models) {
     const opt = document.createElement('option');
@@ -2424,20 +2549,84 @@ function updateProviderUi() {
   document.getElementById('apiSavedBadge').classList.toggle('show', !!savedKey);
 
   const savedModel = localStorage.getItem(getModelStorageKey(provider));
-  if (savedModel && [...modelSelect.options].some(o => o.value === savedModel)) {
+  const customModel = localStorage.getItem(getCustomModelStorageKey(provider)) || '';
+  customModelInput.value = customModel;
+  if (provider === 'custom') {
+    modelSelect.value = CUSTOM_MODEL_VALUE;
+  } else if (savedModel && [...modelSelect.options].some(o => o.value === savedModel)) {
     modelSelect.value = savedModel;
+  } else if (savedModel) {
+    modelSelect.value = CUSTOM_MODEL_VALUE;
+    customModelInput.value = savedModel;
   } else {
     modelSelect.value = config.models[0][0];
     localStorage.setItem(getModelStorageKey(provider), modelSelect.value);
   }
+  if (customModel && modelSelect.value === CUSTOM_MODEL_VALUE) {
+    customModelInput.value = customModel;
+  } else if (modelSelect.value !== CUSTOM_MODEL_VALUE) {
+    customModelInput.value = '';
+  }
+
+  const showCustomModel = modelSelect.value === CUSTOM_MODEL_VALUE;
+  customModelInput.classList.toggle('show', showCustomModel);
+  customModelInput.disabled = !showCustomModel;
+
+  const showEndpoint = !!config.endpointEditable;
+  endpointInput.classList.toggle('show', showEndpoint);
+  endpointLabel.classList.toggle('show', showEndpoint);
+  endpointInput.disabled = !showEndpoint;
+  endpointInput.value = localStorage.getItem(getEndpointStorageKey(provider)) || config.endpoint || '';
 }
 
 function onModelChange() {
-  localStorage.setItem(getModelStorageKey(), document.getElementById('modelSelect').value);
+  const selected = document.getElementById('modelSelect').value;
+  const customInput = document.getElementById('customModelInput');
+  const isCustom = selected === CUSTOM_MODEL_VALUE;
+  customInput.classList.toggle('show', isCustom);
+  customInput.disabled = !isCustom;
+  if (isCustom) {
+    const value = customInput.value.trim();
+    if (value) localStorage.setItem(getCustomModelStorageKey(), value);
+    localStorage.setItem(getModelStorageKey(), value || CUSTOM_MODEL_VALUE);
+  } else {
+    localStorage.setItem(getModelStorageKey(), selected);
+  }
+}
+
+function onCustomModelInput() {
+  const value = document.getElementById('customModelInput').value.trim();
+  localStorage.setItem(getCustomModelStorageKey(), value);
+  localStorage.setItem(getModelStorageKey(), value || CUSTOM_MODEL_VALUE);
+}
+
+function onEndpointInput() {
+  localStorage.setItem(getEndpointStorageKey(), document.getElementById('apiEndpointInput').value.trim());
 }
 
 function getModel() {
-  return document.getElementById('modelSelect').value;
+  const selected = document.getElementById('modelSelect').value;
+  if (selected === CUSTOM_MODEL_VALUE) {
+    const value = document.getElementById('customModelInput').value.trim();
+    if (!value) throw new Error('请先填写自定义模型名');
+    return value;
+  }
+  return selected;
+}
+
+function normalizeOpenAIEndpoint(url) {
+  const raw = (url || '').trim().replace(/\/+$/, '');
+  if (!raw) return '';
+  if (/\/chat\/completions$/i.test(raw)) return raw;
+  return raw + '/chat/completions';
+}
+
+function getProviderEndpoint(provider = getProvider()) {
+  const config = PROVIDER_CONFIG[provider] || PROVIDER_CONFIG.claude;
+  if (config.endpointEditable) {
+    return normalizeOpenAIEndpoint(document.getElementById('apiEndpointInput').value);
+  }
+  return config.endpoint;
 }
 
 function loadApiKey() {
