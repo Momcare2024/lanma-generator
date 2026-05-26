@@ -735,8 +735,13 @@ header {
 
   <!-- API Key（全局） -->
   <div class="api-row" id="apiKeyRow">
+    <label>服务商</label>
+    <select class="model-select" id="providerSelect" onchange="onProviderChange()">
+      <option value="claude">Claude 兼容</option>
+      <option value="gemini">Google Gemini</option>
+    </select>
     <label>API KEY</label>
-    <input type="password" id="apiKey" placeholder="粘贴你的 Anthropic API Key（sk-ant-...）" oninput="onApiKeyInput()">
+    <input type="password" id="apiKey" placeholder="粘贴你的 API Key" oninput="onApiKeyInput()">
     <select class="model-select" id="modelSelect" onchange="onModelChange()">
       <option value="claude-haiku-4-5">Haiku · 省钱</option>
       <option value="claude-sonnet-4-6">Sonnet · 精品</option>
@@ -930,6 +935,25 @@ const KB_CHUNK_OVERLAP = 160;
 const KB_MAX_EXCERPTS = 8;
 const KB_MAX_TOTAL_CHARS = 9000;
 const GENERATION_TIMEOUT_MS = 120000;
+const PROVIDER_CONFIG = {
+  claude: {
+    keyName: 'Claude 兼容',
+    placeholder: '粘贴 Claude 兼容 API Key（如 sk-ant-...）',
+    models: [
+      ['claude-haiku-4-5', 'Haiku · 省钱'],
+      ['claude-sonnet-4-6', 'Sonnet · 精品'],
+    ],
+  },
+  gemini: {
+    keyName: 'Google Gemini',
+    placeholder: '粘贴 Google AI Studio 的 Gemini API Key',
+    models: [
+      ['gemini-3.5-flash', 'Gemini 3.5 Flash'],
+      ['gemini-2.5-flash', 'Gemini 2.5 Flash'],
+      ['gemini-2.5-pro', 'Gemini 2.5 Pro'],
+    ],
+  },
+};
 
 // ============================================================
 // localStorage
@@ -1798,6 +1822,69 @@ async function fetchWithTimeout(url, options, timeoutMs) {
   }
 }
 
+function buildProviderRequest(apiKey, promptText, retrieval, turns) {
+  const provider = getProvider();
+  const model = getModel();
+  const systemText = buildSystemPrompt(promptText, retrieval.refs.length > 0);
+
+  if (provider === 'gemini') {
+    const contents = turns.map((turn, i) => ({
+      role: turn.role === 'assistant' ? 'model' : 'user',
+      parts: [{
+        text: (i === 0 ? `${systemText}\n\n` : '') + turn.content,
+      }],
+    }));
+    return {
+      provider,
+      url: `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
+      options: {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey,
+        },
+        body: JSON.stringify({
+          contents,
+          generationConfig: { maxOutputTokens: 4096 },
+        }),
+      },
+    };
+  }
+
+  return {
+    provider,
+    url: 'https://aicanapi.com/v1/messages',
+    options: {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 4096,
+        stream: true,
+        system: systemText,
+        messages: turns,
+      }),
+    },
+  };
+}
+
+function extractProviderChunk(provider, parsed) {
+  if (provider === 'gemini') {
+    const parts = parsed.candidates?.[0]?.content?.parts || [];
+    return parts.map(p => p.text || '').join('');
+  }
+  return parsed.delta?.text || parsed.choices?.[0]?.delta?.content || '';
+}
+
+async function readProviderError(resp) {
+  const err = await resp.json().catch(() => ({}));
+  return err.error?.message || err.message || ('HTTP ' + resp.status);
+}
+
 function stopGeneration() {
   generationStopRequested = true;
   activeAbortController?.abort();
@@ -1865,25 +1952,13 @@ async function generateOne(task, apiKey, promptText) {
   setActiveView(task.id);  // 自动切换到当前生成任务
 
   try {
-    const resp = await fetchWithTimeout('https://aicanapi.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: getModel(),
-        max_tokens: 4096,
-        stream: true,
-        system: buildSystemPrompt(promptText, retrieval.refs.length > 0),
-        messages: [{ role: 'user', content: buildTaskMessage(task, retrieval) }]
-      })
-    }, GENERATION_TIMEOUT_MS);
+    const request = buildProviderRequest(apiKey, promptText, retrieval, [
+      { role: 'user', content: buildTaskMessage(task, retrieval) },
+    ]);
+    const resp = await fetchWithTimeout(request.url, request.options, GENERATION_TIMEOUT_MS);
 
     if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
-      throw new Error(err.error?.message || 'HTTP ' + resp.status);
+      throw new Error(await readProviderError(resp));
     }
 
     // 准备流式展示区
@@ -1911,7 +1986,7 @@ async function generateOne(task, apiKey, promptText) {
         if (!data || data === '[DONE]') continue;
         try {
           const parsed = JSON.parse(data);
-          const chunk = parsed.delta?.text || parsed.choices?.[0]?.delta?.content || '';
+          const chunk = extractProviderChunk(request.provider, parsed);
           if (chunk) {
             full += chunk;
             // 只在当前查看的任务上更新 DOM
@@ -2027,29 +2102,15 @@ async function continueTask() {
   }
 
   try {
-    const resp = await fetchWithTimeout('https://aicanapi.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: getModel(),
-        max_tokens: 4096,
-        stream: true,
-        system: buildSystemPrompt(promptText, retrieval.refs.length > 0),
-        messages: [
-          { role: 'user', content: buildTaskMessage(task, retrieval) },
-          { role: 'assistant', content: task.result },
-          { role: 'user', content: '请继续写完上面未完成的内容，从中断处直接接续，不要重复已有内容；继续遵守知识库使用规则，不要新增资料里没有的课程细节。' }
-        ]
-      })
-    }, GENERATION_TIMEOUT_MS);
+    const request = buildProviderRequest(apiKey, promptText, retrieval, [
+      { role: 'user', content: buildTaskMessage(task, retrieval) },
+      { role: 'assistant', content: task.result },
+      { role: 'user', content: '请继续写完上面未完成的内容，从中断处直接接续，不要重复已有内容；继续遵守知识库使用规则，不要新增资料里没有的课程细节。' }
+    ]);
+    const resp = await fetchWithTimeout(request.url, request.options, GENERATION_TIMEOUT_MS);
 
     if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
-      throw new Error(err.error?.message || 'HTTP ' + resp.status);
+      throw new Error(await readProviderError(resp));
     }
 
     const cursor = document.createElement('span');
@@ -2067,7 +2128,7 @@ async function continueTask() {
         if (!data || data === '[DONE]') continue;
         try {
           const parsed = JSON.parse(data);
-          const chunk = parsed.delta?.text || parsed.choices?.[0]?.delta?.content || '';
+          const chunk = extractProviderChunk(request.provider, parsed);
           if (chunk) {
             extra += chunk;
             if (activeViewId === task.id && textEl) {
@@ -2306,26 +2367,73 @@ function importBackup(e) {
 // ============================================================
 const LS_APIKEY = 'lanma_apikey';
 const LS_MODEL  = 'lanma_model';
+const LS_PROVIDER = 'lanma_provider';
 
 function onApiKeyInput() {
   const key = document.getElementById('apiKey').value.trim();
+  const storageKey = getApiKeyStorageKey();
   if (key) {
-    localStorage.setItem(LS_APIKEY, key);
+    localStorage.setItem(storageKey, key);
     document.getElementById('apiSavedBadge').classList.add('show');
   } else {
-    localStorage.removeItem(LS_APIKEY);
+    localStorage.removeItem(storageKey);
     document.getElementById('apiSavedBadge').classList.remove('show');
   }
 }
 
 function clearApiKey() {
   document.getElementById('apiKey').value = '';
-  localStorage.removeItem(LS_APIKEY);
+  localStorage.removeItem(getApiKeyStorageKey());
   document.getElementById('apiSavedBadge').classList.remove('show');
 }
 
+function getProvider() {
+  return document.getElementById('providerSelect')?.value || 'claude';
+}
+
+function getApiKeyStorageKey(provider = getProvider()) {
+  return provider === 'claude' ? LS_APIKEY : `${LS_APIKEY}_${provider}`;
+}
+
+function getModelStorageKey(provider = getProvider()) {
+  return provider === 'claude' ? LS_MODEL : `${LS_MODEL}_${provider}`;
+}
+
+function onProviderChange() {
+  const provider = getProvider();
+  localStorage.setItem(LS_PROVIDER, provider);
+  updateProviderUi();
+}
+
+function updateProviderUi() {
+  const provider = getProvider();
+  const config = PROVIDER_CONFIG[provider] || PROVIDER_CONFIG.claude;
+  const modelSelect = document.getElementById('modelSelect');
+  const apiInput = document.getElementById('apiKey');
+  modelSelect.innerHTML = '';
+  for (const [value, label] of config.models) {
+    const opt = document.createElement('option');
+    opt.value = value;
+    opt.textContent = label;
+    modelSelect.appendChild(opt);
+  }
+
+  apiInput.placeholder = config.placeholder;
+  const savedKey = localStorage.getItem(getApiKeyStorageKey(provider));
+  apiInput.value = savedKey || '';
+  document.getElementById('apiSavedBadge').classList.toggle('show', !!savedKey);
+
+  const savedModel = localStorage.getItem(getModelStorageKey(provider));
+  if (savedModel && [...modelSelect.options].some(o => o.value === savedModel)) {
+    modelSelect.value = savedModel;
+  } else {
+    modelSelect.value = config.models[0][0];
+    localStorage.setItem(getModelStorageKey(provider), modelSelect.value);
+  }
+}
+
 function onModelChange() {
-  localStorage.setItem(LS_MODEL, document.getElementById('modelSelect').value);
+  localStorage.setItem(getModelStorageKey(), document.getElementById('modelSelect').value);
 }
 
 function getModel() {
@@ -2333,15 +2441,11 @@ function getModel() {
 }
 
 function loadApiKey() {
-  const saved = localStorage.getItem(LS_APIKEY);
-  if (saved) {
-    document.getElementById('apiKey').value = saved;
-    document.getElementById('apiSavedBadge').classList.add('show');
+  const savedProvider = localStorage.getItem(LS_PROVIDER);
+  if (savedProvider && PROVIDER_CONFIG[savedProvider]) {
+    document.getElementById('providerSelect').value = savedProvider;
   }
-  const savedModel = localStorage.getItem(LS_MODEL);
-  if (savedModel) {
-    document.getElementById('modelSelect').value = savedModel;
-  }
+  updateProviderUi();
 }
 
 // ============================================================
