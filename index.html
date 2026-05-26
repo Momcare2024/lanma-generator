@@ -961,6 +961,7 @@ const KB_CHUNK_OVERLAP = 160;
 const KB_MAX_EXCERPTS = 8;
 const KB_MAX_TOTAL_CHARS = 9000;
 const GENERATION_TIMEOUT_MS = 120000;
+const STREAM_IDLE_TIMEOUT_MS = 60000;
 const PROVIDER_CONFIG = {
   aicanapi: {
     keyName: 'AICanAPI',
@@ -1910,8 +1911,26 @@ async function fetchWithTimeout(url, options, timeoutMs) {
     throw err;
   } finally {
     clearTimeout(timeout);
-    activeAbortController = null;
   }
+}
+
+async function readStreamChunk(reader) {
+  let timeoutId = null;
+  const readPromise = reader.read().then(
+    value => ({ type: 'read', value }),
+    error => ({ type: 'error', error })
+  );
+  const timeoutPromise = new Promise(resolve => {
+    timeoutId = setTimeout(() => resolve({ type: 'timeout' }), STREAM_IDLE_TIMEOUT_MS);
+  });
+  const outcome = await Promise.race([readPromise, timeoutPromise]);
+  clearTimeout(timeoutId);
+  if (outcome.type === 'timeout') {
+    activeAbortController?.abort();
+    throw new Error('模型超过 60 秒没有返回正文，已自动停止。请换一个模型或稍后重试。');
+  }
+  if (outcome.type === 'error') throw outcome.error;
+  return outcome.value;
 }
 
 function buildProviderRequest(apiKey, promptText, retrieval, turns) {
@@ -2003,7 +2022,122 @@ function extractProviderChunk(provider, parsed) {
     const parts = parsed.candidates?.[0]?.content?.parts || [];
     return parts.map(p => p.text || '').join('');
   }
-  return parsed.delta?.text || parsed.choices?.[0]?.delta?.content || '';
+  return parsed.delta?.text || parsed.delta?.content || parsed.choices?.[0]?.delta?.content || '';
+}
+
+function extractProviderFullText(provider, parsed) {
+  if (!parsed || typeof parsed !== 'object') return '';
+  if (Array.isArray(parsed)) {
+    return parsed.map(item => extractProviderFullText(provider, item)).join('');
+  }
+  if (provider === 'gemini') {
+    const parts = parsed.candidates?.[0]?.content?.parts || [];
+    const text = parts.map(p => p.text || '').join('');
+    if (text) return text;
+  }
+  const content = parsed.content;
+  if (Array.isArray(content)) {
+    return content.map(part => typeof part === 'string' ? part : (part.text || '')).join('');
+  }
+  if (typeof content === 'string') return content;
+  return parsed.choices?.[0]?.message?.content
+    || parsed.choices?.[0]?.text
+    || parsed.message?.content
+    || parsed.output_text
+    || parsed.text
+    || parsed.completion
+    || '';
+}
+
+function extractTextFromPayload(provider, payload, preferChunk = true) {
+  try {
+    const parsed = JSON.parse(payload);
+    if (Array.isArray(parsed)) {
+      return parsed.map(item => (
+        preferChunk
+          ? (extractProviderChunk(provider, item) || extractProviderFullText(provider, item))
+          : (extractProviderFullText(provider, item) || extractProviderChunk(provider, item))
+      )).join('');
+    }
+    return preferChunk
+      ? (extractProviderChunk(provider, parsed) || extractProviderFullText(provider, parsed))
+      : (extractProviderFullText(provider, parsed) || extractProviderChunk(provider, parsed));
+  } catch(e) {
+    return '';
+  }
+}
+
+function getStreamPayload(line) {
+  const trimmed = (line || '').trim();
+  if (!trimmed || trimmed.startsWith('event:') || trimmed.startsWith(':')) return '';
+  if (trimmed.startsWith('data:')) return trimmed.slice(5).trim();
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) return trimmed;
+  return '';
+}
+
+function extractFallbackBodyText(provider, rawBody) {
+  const body = (rawBody || '').trim();
+  if (!body) return '';
+  const direct = (body.startsWith('{') || body.startsWith('['))
+    ? extractTextFromPayload(provider, body, false)
+    : '';
+  if (direct) return direct;
+  return body
+    .split(/\r?\n/)
+    .map(getStreamPayload)
+    .filter(data => data && data !== '[DONE]')
+    .map(data => extractTextFromPayload(provider, data, false))
+    .join('');
+}
+
+async function readProviderText(request, resp, onText) {
+  if (!resp.body || !resp.body.getReader) {
+    const parsed = await resp.json().catch(() => null);
+    const text = extractProviderFullText(request.provider, parsed);
+    if (text) onText?.(text);
+    return text;
+  }
+
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let pending = '';
+  let rawBody = '';
+  let full = '';
+
+  const consumePayload = data => {
+    if (!data || data === '[DONE]') return;
+    const chunk = extractTextFromPayload(request.provider, data, true);
+    if (!chunk) return;
+    full += chunk;
+    onText?.(full);
+  };
+
+  while (true) {
+    const { done, value } = await readStreamChunk(reader);
+    if (done) break;
+    const decoded = decoder.decode(value, { stream: true });
+    rawBody += decoded;
+    pending += decoded;
+    const lines = pending.split(/\r?\n/);
+    pending = lines.pop() || '';
+    lines.forEach(line => consumePayload(getStreamPayload(line)));
+  }
+
+  const tail = decoder.decode();
+  if (tail) {
+    rawBody += tail;
+    pending += tail;
+  }
+  consumePayload(getStreamPayload(pending));
+
+  if (!full) {
+    const fallback = extractFallbackBodyText(request.provider, rawBody);
+    if (fallback) {
+      full = fallback;
+      onText?.(full);
+    }
+  }
+  return full;
 }
 
 async function readProviderError(resp) {
@@ -2087,48 +2221,45 @@ async function generateOne(task, apiKey, promptText) {
       throw new Error(await readProviderError(resp));
     }
 
-    // 准备流式展示区
+    // 准备流式展示区：拿到响应头后继续显示等待，直到收到第一段正文。
     if (activeViewId === task.id) {
-      document.getElementById('singleLoading').style.display = 'none';
+      const loading = document.getElementById('singleLoading');
+      if (loading) {
+        loading.style.display = 'flex';
+        loading.innerHTML = '<div class="spinner"></div><span style="font-size:13px">已连接模型，等待正文返回…</span>';
+      }
       const textEl = document.getElementById('singleText');
-      textEl.style.display = 'block';
-      textEl.classList.add('streaming');
-      textEl.innerHTML = '';
+      if (textEl) {
+        textEl.style.display = 'none';
+        textEl.classList.add('streaming');
+        textEl.innerHTML = '';
+      }
     }
 
     const cursor = document.createElement('span');
     cursor.className = 'cursor';
+    let hasShownFirstChunk = false;
 
-    const reader = resp.body.getReader();
-    const decoder = new TextDecoder();
-    let full = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      for (const line of decoder.decode(value, { stream: true }).split('\n')) {
-        if (!line.startsWith('data: ')) continue;
-        const data = line.slice(6).trim();
-        if (!data || data === '[DONE]') continue;
-        try {
-          const parsed = JSON.parse(data);
-          const chunk = extractProviderChunk(request.provider, parsed);
-          if (chunk) {
-            full += chunk;
-            // 只在当前查看的任务上更新 DOM
-            if (activeViewId === task.id) {
-              const textEl = document.getElementById('singleText');
-              if (textEl) {
-                const escaped = full.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-                textEl.innerHTML = escaped;
-                textEl.appendChild(cursor);
-                document.getElementById('singleBody').scrollTop = 999999;
-              }
-            }
+    const full = await readProviderText(request, resp, nextFull => {
+      // 只在当前查看的任务上更新 DOM
+      if (activeViewId === task.id) {
+        const loading = document.getElementById('singleLoading');
+        const textEl = document.getElementById('singleText');
+        if (loading && !hasShownFirstChunk) loading.style.display = 'none';
+        if (textEl) {
+          if (!hasShownFirstChunk) {
+            textEl.style.display = 'block';
+            textEl.classList.add('streaming');
+            textEl.innerHTML = '';
+            hasShownFirstChunk = true;
           }
-        } catch(e) {}
+          const escaped = nextFull.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+          textEl.innerHTML = escaped;
+          textEl.appendChild(cursor);
+          document.getElementById('singleBody').scrollTop = 999999;
+        }
       }
-    }
+    });
 
     cursor.remove();
     if (!full) throw new Error('未收到任何内容，请检查 API Key 和模型名称是否正确');
@@ -2155,6 +2286,8 @@ async function generateOne(task, apiKey, promptText) {
       setTaskStatus(task.id, 'error');
     }
     renderRightPanel();
+  } finally {
+    activeAbortController = null;
   }
 }
 
@@ -2241,33 +2374,15 @@ async function continueTask() {
 
     const cursor = document.createElement('span');
     cursor.className = 'cursor';
-    const reader = resp.body.getReader();
-    const decoder = new TextDecoder();
-    let extra = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      for (const line of decoder.decode(value, { stream: true }).split('\n')) {
-        if (!line.startsWith('data: ')) continue;
-        const data = line.slice(6).trim();
-        if (!data || data === '[DONE]') continue;
-        try {
-          const parsed = JSON.parse(data);
-          const chunk = extractProviderChunk(request.provider, parsed);
-          if (chunk) {
-            extra += chunk;
-            if (activeViewId === task.id && textEl) {
-              const combined = task.result + extra;
-              const escaped = combined.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-              textEl.innerHTML = escaped;
-              textEl.appendChild(cursor);
-              document.getElementById('singleBody').scrollTop = 999999;
-            }
-          }
-        } catch(e) {}
+    const extra = await readProviderText(request, resp, nextExtra => {
+      if (activeViewId === task.id && textEl) {
+        const combined = task.result + nextExtra;
+        const escaped = combined.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        textEl.innerHTML = escaped;
+        textEl.appendChild(cursor);
+        document.getElementById('singleBody').scrollTop = 999999;
       }
-    }
+    });
 
     cursor.remove();
     if (!extra) throw new Error('未收到续写内容');
@@ -2293,6 +2408,7 @@ async function continueTask() {
     }
     renderRightPanel();
   } finally {
+    activeAbortController = null;
     isGenerating = false;
     generationStopRequested = false;
     setGeneratingUi(false);
