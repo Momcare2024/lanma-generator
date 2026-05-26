@@ -60,6 +60,13 @@ header {
   margin-bottom: 20px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.06);
 }
+.api-main-line {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
 .api-row label { font-size: 12px; color: #8a7560; white-space: nowrap; font-weight: 500; }
 .api-row input {
   flex: 1;
@@ -79,6 +86,37 @@ header {
   white-space: nowrap; flex-shrink: 0;
 }
 .model-select:focus { border-color: #c0622a; }
+.api-key-input { min-width: 260px; }
+.provider-select { min-width: 180px; }
+.api-help {
+  width: 100%;
+  color: #8a7560;
+  font-size: 12px;
+  line-height: 1.6;
+  padding-left: 2px;
+}
+.advanced-api-toggle {
+  padding: 7px 12px;
+  border-radius: 7px;
+  border: 1px solid #ddd5c8;
+  background: #faf7f2;
+  color: #8a7560;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.advanced-api-toggle:hover { border-color: #c0622a; color: #c0622a; background: #fff; }
+.advanced-api-panel {
+  width: 100%;
+  display: none;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 10px;
+  border-top: 1px dashed #e5d8c8;
+}
+.advanced-api-panel.show { display: flex; }
 .custom-model-input {
   flex: 0 1 220px !important;
   min-width: 180px;
@@ -750,29 +788,36 @@ header {
 
   <!-- API Key（全局） -->
   <div class="api-row" id="apiKeyRow">
-    <label>服务商</label>
-    <select class="model-select" id="providerSelect" onchange="onProviderChange()">
-      <option value="aicanapi">AICanAPI</option>
-      <option value="claude">Claude 兼容</option>
-      <option value="openai">OpenAI 兼容</option>
-      <option value="gemini">Google Gemini</option>
-      <option value="openrouter">OpenRouter</option>
-      <option value="deepseek">DeepSeek</option>
-      <option value="custom">自定义接口</option>
-    </select>
-    <label>API KEY</label>
-    <input type="password" id="apiKey" placeholder="粘贴你的 API Key" oninput="onApiKeyInput()">
-    <select class="model-select" id="modelSelect" onchange="onModelChange()">
-      <option value="claude-haiku-4-5">Haiku · 省钱</option>
-      <option value="claude-sonnet-4-6">Sonnet · 精品</option>
-    </select>
-    <input class="custom-model-input" type="text" id="customModelInput"
-           placeholder="输入自定义模型名" oninput="onCustomModelInput()">
-    <label class="endpoint-label" id="endpointLabel">接口地址</label>
-    <input class="endpoint-input" type="text" id="apiEndpointInput"
-           placeholder="https://api.example.com/v1/chat/completions" oninput="onEndpointInput()">
-    <span class="api-saved-badge" id="apiSavedBadge">🔒 已记住</span>
-    <button class="clear-api-btn" type="button" onclick="clearApiKey()">清除</button>
+    <div class="api-main-line">
+      <label>API KEY</label>
+      <input class="api-key-input" type="password" id="apiKey" placeholder="粘贴 AICanAPI 的 sk-... 密钥" oninput="onApiKeyInput()">
+      <label>模型</label>
+      <select class="model-select" id="modelSelect" onchange="onModelChange()">
+        <option value="claude-sonnet-4-6">Claude Sonnet（推荐）</option>
+        <option value="claude-haiku-4-5">Claude Haiku（省钱）</option>
+      </select>
+      <input class="custom-model-input" type="text" id="customModelInput"
+             placeholder="输入自定义模型名" oninput="onCustomModelInput()">
+      <span class="api-saved-badge" id="apiSavedBadge">🔒 已记住</span>
+      <button class="clear-api-btn" type="button" onclick="clearApiKey()">清除</button>
+      <button class="advanced-api-toggle" type="button" id="advancedApiToggle" onclick="toggleAdvancedApi()">高级设置</button>
+    </div>
+    <div class="api-help" id="apiHelpText"></div>
+    <div class="advanced-api-panel" id="advancedApiPanel">
+      <label>接口模式</label>
+      <select class="model-select provider-select" id="providerSelect" onchange="onProviderChange()">
+        <option value="aicanapi">AICanAPI 代理（推荐）</option>
+        <option value="claude">Claude 官方/兼容</option>
+        <option value="openai">OpenAI 兼容</option>
+        <option value="gemini">Google Gemini 官方</option>
+        <option value="openrouter">OpenRouter</option>
+        <option value="deepseek">DeepSeek</option>
+        <option value="custom">自定义接口</option>
+      </select>
+      <label class="endpoint-label" id="endpointLabel">接口地址</label>
+      <input class="endpoint-input" type="text" id="apiEndpointInput"
+             placeholder="https://api.example.com/v1/chat/completions" oninput="onEndpointInput()">
+    </div>
   </div>
 
   <!-- 课程Tab栏 -->
@@ -967,11 +1012,11 @@ const PROVIDER_CONFIG = {
     keyName: 'AICanAPI',
     protocol: 'anthropic',
     endpoint: 'https://aicanapi.com/v1/messages',
-    placeholder: '粘贴 AICanAPI 的 API Key',
+    placeholder: '粘贴 AICanAPI 的 sk-... 令牌',
     models: [
-      ['claude-haiku-4-5', 'Claude Haiku · 省钱'],
-      ['claude-sonnet-4-6', 'Claude Sonnet · 精品'],
-      ['gemini-2.5-flash', 'Gemini 2.5 Flash'],
+      ['claude-sonnet-4-6', 'Claude Sonnet（推荐）'],
+      ['claude-haiku-4-5', 'Claude Haiku（省钱）'],
+      ['gemini-2.5-flash', 'Gemini 2.5 Flash（快）'],
       ['gemini-2.5-pro', 'Gemini 2.5 Pro'],
       [CUSTOM_MODEL_VALUE, '自定义模型名'],
     ],
@@ -2612,6 +2657,7 @@ const LS_MODEL  = 'lanma_model';
 const LS_PROVIDER = 'lanma_provider';
 const LS_ENDPOINT = 'lanma_endpoint';
 const LS_CUSTOM_MODEL = 'lanma_custom_model';
+const LS_API_ADVANCED = 'lanma_api_advanced';
 
 function onApiKeyInput() {
   const key = document.getElementById('apiKey').value.trim();
@@ -2654,7 +2700,56 @@ function getCustomModelStorageKey(provider = getProvider()) {
 function onProviderChange() {
   const provider = getProvider();
   localStorage.setItem(LS_PROVIDER, provider);
+  if (provider !== 'aicanapi') localStorage.setItem(LS_API_ADVANCED, '1');
   updateProviderUi();
+}
+
+function isAdvancedApiOpen() {
+  return localStorage.getItem(LS_API_ADVANCED) === '1';
+}
+
+function toggleAdvancedApi() {
+  const nextOpen = !isAdvancedApiOpen();
+  if (!nextOpen && getProvider() !== 'aicanapi') {
+    document.getElementById('providerSelect').value = 'aicanapi';
+    localStorage.setItem(LS_PROVIDER, 'aicanapi');
+  }
+  localStorage.setItem(LS_API_ADVANCED, nextOpen ? '1' : '0');
+  updateProviderUi();
+}
+
+function updateAdvancedApiVisibility() {
+  const open = isAdvancedApiOpen();
+  const panel = document.getElementById('advancedApiPanel');
+  const toggle = document.getElementById('advancedApiToggle');
+  panel?.classList.toggle('show', open);
+  if (toggle) toggle.textContent = open ? '收起高级' : '高级设置';
+}
+
+function updateApiHelpText(provider, model) {
+  const help = document.getElementById('apiHelpText');
+  if (!help) return;
+  if (provider === 'aicanapi') {
+    if ((model || '').startsWith('gemini')) {
+      help.textContent = 'AICanAPI 填法：粘贴代理站生成的 sk-... 令牌；模型选 Gemini 时，令牌分组要选支持 Gemini 的分组。';
+    } else {
+      help.textContent = 'AICanAPI 填法：在代理站创建令牌时选 Claude-专用 官key；这里粘贴 sk-...，模型选 Claude Sonnet 或 Haiku。';
+    }
+    return;
+  }
+  if (provider === 'claude') {
+    help.textContent = '只有官方 Claude/Anthropic 或完全兼容的密钥才选这里；AICanAPI 生成的 sk-... 建议切回 AICanAPI 代理。';
+    return;
+  }
+  if (provider === 'gemini') {
+    help.textContent = '这里填写 Google AI Studio 的官方 Gemini Key；AICanAPI 代理密钥请切回 AICanAPI 代理。';
+    return;
+  }
+  if (provider === 'custom') {
+    help.textContent = '自定义接口按 OpenAI 兼容格式发送；需要填写完整接口地址和模型名。';
+    return;
+  }
+  help.textContent = '这里填写对应平台的官方或兼容 API Key；如果你用的是 AICanAPI 代理，建议切回 AICanAPI 代理。';
 }
 
 function updateProviderUi() {
@@ -2707,6 +2802,8 @@ function updateProviderUi() {
   endpointLabel.classList.toggle('show', showEndpoint);
   endpointInput.disabled = !showEndpoint;
   endpointInput.value = localStorage.getItem(getEndpointStorageKey(provider)) || config.endpoint || '';
+  updateAdvancedApiVisibility();
+  updateApiHelpText(provider, modelSelect.value);
 }
 
 function onModelChange() {
@@ -2722,6 +2819,7 @@ function onModelChange() {
   } else {
     localStorage.setItem(getModelStorageKey(), selected);
   }
+  updateApiHelpText(getProvider(), selected);
 }
 
 function onCustomModelInput() {
@@ -2763,6 +2861,7 @@ function loadApiKey() {
   const savedProvider = localStorage.getItem(LS_PROVIDER);
   if (savedProvider && PROVIDER_CONFIG[savedProvider]) {
     document.getElementById('providerSelect').value = savedProvider;
+    if (savedProvider !== 'aicanapi') localStorage.setItem(LS_API_ADVANCED, '1');
   } else {
     document.getElementById('providerSelect').value = 'aicanapi';
   }
