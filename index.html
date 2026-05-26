@@ -1959,20 +1959,24 @@ async function fetchWithTimeout(url, options, timeoutMs) {
   }
 }
 
-async function readStreamChunk(reader) {
+async function readStreamChunk(reader, timeoutMs = STREAM_IDLE_TIMEOUT_MS, errorMessage = '模型超过 60 秒没有返回正文，已自动停止。请换一个模型或稍后重试。') {
+  if (timeoutMs <= 0) {
+    activeAbortController?.abort();
+    throw new Error(errorMessage);
+  }
   let timeoutId = null;
   const readPromise = reader.read().then(
     value => ({ type: 'read', value }),
     error => ({ type: 'error', error })
   );
   const timeoutPromise = new Promise(resolve => {
-    timeoutId = setTimeout(() => resolve({ type: 'timeout' }), STREAM_IDLE_TIMEOUT_MS);
+    timeoutId = setTimeout(() => resolve({ type: 'timeout' }), timeoutMs);
   });
   const outcome = await Promise.race([readPromise, timeoutPromise]);
   clearTimeout(timeoutId);
   if (outcome.type === 'timeout') {
     activeAbortController?.abort();
-    throw new Error('模型超过 60 秒没有返回正文，已自动停止。请换一个模型或稍后重试。');
+    throw new Error(errorMessage);
   }
   if (outcome.type === 'error') throw outcome.error;
   return outcome.value;
@@ -2112,6 +2116,21 @@ function extractTextFromPayload(provider, payload, preferChunk = true) {
   }
 }
 
+function extractProviderPayloadError(payload) {
+  try {
+    const parsed = JSON.parse(payload);
+    const items = Array.isArray(parsed) ? parsed : [parsed];
+    for (const item of items) {
+      if (!item || typeof item !== 'object') continue;
+      const err = item.error || item.errors?.[0];
+      if (typeof err === 'string') return err;
+      if (err?.message) return err.message;
+      if (item.type === 'error' && item.message) return item.message;
+    }
+  } catch(e) {}
+  return '';
+}
+
 function getStreamPayload(line) {
   const trimmed = (line || '').trim();
   if (!trimmed || trimmed.startsWith('event:') || trimmed.startsWith(':')) return '';
@@ -2148,17 +2167,35 @@ async function readProviderText(request, resp, onText) {
   let pending = '';
   let rawBody = '';
   let full = '';
+  let lastVisibleTextAt = Date.now();
+  let visibleTextLength = 0;
+
+  const updateVisibleProgress = () => {
+    const nextLength = (full.match(/\S/g) || []).length;
+    if (nextLength > visibleTextLength) {
+      visibleTextLength = nextLength;
+      lastVisibleTextAt = Date.now();
+      onText?.(full);
+    }
+  };
 
   const consumePayload = data => {
     if (!data || data === '[DONE]') return;
+    const payloadError = extractProviderPayloadError(data);
+    if (payloadError) throw new Error(payloadError);
     const chunk = extractTextFromPayload(request.provider, data, true);
     if (!chunk) return;
     full += chunk;
-    onText?.(full);
+    updateVisibleProgress();
   };
 
   while (true) {
-    const { done, value } = await readStreamChunk(reader);
+    const remainingMs = STREAM_IDLE_TIMEOUT_MS - (Date.now() - lastVisibleTextAt);
+    const { done, value } = await readStreamChunk(
+      reader,
+      remainingMs,
+      '模型超过 60 秒没有返回有效文字，已自动停止。请换一个模型、检查 AICanAPI 令牌分组，或稍后重试。'
+    );
     if (done) break;
     const decoded = decoder.decode(value, { stream: true });
     rawBody += decoded;
@@ -2179,7 +2216,7 @@ async function readProviderText(request, resp, onText) {
     const fallback = extractFallbackBodyText(request.provider, rawBody);
     if (fallback) {
       full = fallback;
-      onText?.(full);
+      updateVisibleProgress();
     }
   }
   return full;
@@ -2286,6 +2323,7 @@ async function generateOne(task, apiKey, promptText) {
     let hasShownFirstChunk = false;
 
     const full = await readProviderText(request, resp, nextFull => {
+      if (!nextFull.trim()) return;
       // 只在当前查看的任务上更新 DOM
       if (activeViewId === task.id) {
         const loading = document.getElementById('singleLoading');
@@ -2307,18 +2345,18 @@ async function generateOne(task, apiKey, promptText) {
     });
 
     cursor.remove();
-    if (!full) throw new Error('未收到任何内容，请检查 API Key 和模型名称是否正确');
+    if (!full.trim()) throw new Error('未收到任何有效内容，请检查 API Key、令牌分组和模型名称是否正确');
 
-    task.result = full;
-    task.truncated = isLikelyTruncated(full);
-    task.audit = runConversionAudit(full, task, retrieval);
+    task.result = full.trim();
+    task.truncated = isLikelyTruncated(task.result);
+    task.audit = runConversionAudit(task.result, task, retrieval);
     setTaskStatus(task.id, 'done');
     saveToStorage(); // 每篇完成立即持久化，防止刷新丢失
 
     // 渲染 Markdown（无论是否是当前查看，都存好；若是当前查看则立即渲染）
     if (activeViewId === task.id) {
       const textEl = document.getElementById('singleText');
-      if (textEl) { textEl.classList.remove('streaming'); textEl.innerHTML = renderMarkdownSafe(full); }
+      if (textEl) { textEl.classList.remove('streaming'); textEl.innerHTML = renderMarkdownSafe(task.result); }
     }
     renderRightPanel(); // 更新 nav pills
 
@@ -2420,6 +2458,7 @@ async function continueTask() {
     const cursor = document.createElement('span');
     cursor.className = 'cursor';
     const extra = await readProviderText(request, resp, nextExtra => {
+      if (!nextExtra.trim()) return;
       if (activeViewId === task.id && textEl) {
         const combined = task.result + nextExtra;
         const escaped = combined.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -2430,9 +2469,9 @@ async function continueTask() {
     });
 
     cursor.remove();
-    if (!extra) throw new Error('未收到续写内容');
+    if (!extra.trim()) throw new Error('未收到有效续写内容');
 
-    task.result = task.result + extra;
+    task.result = task.result + extra.trimEnd();
     task.truncated = isLikelyTruncated(task.result);
     task.audit = runConversionAudit(task.result, task, retrieval);
     setTaskStatus(task.id, 'done');
