@@ -1005,13 +1005,14 @@ const KB_CHUNK_SIZE = 1200;
 const KB_CHUNK_OVERLAP = 160;
 const KB_MAX_EXCERPTS = 8;
 const KB_MAX_TOTAL_CHARS = 9000;
-const GENERATION_TIMEOUT_MS = 120000;
+const GENERATION_TIMEOUT_MS = 240000;
 const STREAM_IDLE_TIMEOUT_MS = 60000;
 const PROVIDER_CONFIG = {
   aicanapi: {
     keyName: 'Claude API',
     protocol: 'anthropic',
     endpoint: 'https://aicanapi.com/v1/messages',
+    stream: false,
     placeholder: '粘贴 Claude API 的 sk-... 密钥',
     models: [
       ['claude-sonnet-4-6', 'Claude Sonnet'],
@@ -1996,6 +1997,7 @@ function buildProviderRequest(apiKey, promptText, retrieval, turns) {
     return {
       provider,
       protocol: config.protocol,
+      stream: true,
       url: config.endpoint.replace('{model}', encodeURIComponent(model)),
       options: {
         method: 'POST',
@@ -2025,6 +2027,7 @@ function buildProviderRequest(apiKey, promptText, retrieval, turns) {
     return {
       provider,
       protocol: config.protocol,
+      stream: true,
       url: endpoint,
       options: {
         method: 'POST',
@@ -2042,9 +2045,11 @@ function buildProviderRequest(apiKey, promptText, retrieval, turns) {
     };
   }
 
+  const shouldStream = config.stream !== false;
   return {
     provider,
     protocol: config.protocol,
+    stream: shouldStream,
     url: config.endpoint,
     options: {
       method: 'POST',
@@ -2056,7 +2061,7 @@ function buildProviderRequest(apiKey, promptText, retrieval, turns) {
       body: JSON.stringify({
         model,
         max_tokens: 4096,
-        stream: true,
+        stream: shouldStream,
         system: systemText,
         messages: turns,
       }),
@@ -2152,10 +2157,32 @@ function extractFallbackBodyText(provider, rawBody) {
     .join('');
 }
 
+async function readResponseTextWithTimeout(resp, timeoutMs) {
+  let timeoutId = null;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      activeAbortController?.abort();
+      reject(new Error('模型生成超过 4 分钟未完成，已自动停止。请稍后重试或换一个模型。'));
+    }, timeoutMs);
+  });
+  try {
+    return await Promise.race([resp.text(), timeoutPromise]);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 async function readProviderText(request, resp, onText) {
+  const contentType = resp.headers?.get?.('content-type') || '';
+  if (request.stream === false || !contentType.includes('text/event-stream')) {
+    const rawText = await readResponseTextWithTimeout(resp, GENERATION_TIMEOUT_MS);
+    const text = extractFallbackBodyText(request.provider, rawText);
+    if (text) onText?.(text);
+    return text;
+  }
   if (!resp.body || !resp.body.getReader) {
-    const parsed = await resp.json().catch(() => null);
-    const text = extractProviderFullText(request.provider, parsed);
+    const rawText = await readResponseTextWithTimeout(resp, GENERATION_TIMEOUT_MS);
+    const text = extractFallbackBodyText(request.provider, rawText);
     if (text) onText?.(text);
     return text;
   }
@@ -2301,12 +2328,14 @@ async function generateOne(task, apiKey, promptText) {
       throw new Error(await readProviderError(resp));
     }
 
-    // 准备流式展示区：拿到响应头后继续显示等待，直到收到第一段正文。
+    // 准备展示区：Claude API 默认等待完整正文返回，其他流式接口收到第一段正文后展示。
     if (activeViewId === task.id) {
       const loading = document.getElementById('singleLoading');
       if (loading) {
         loading.style.display = 'flex';
-        loading.innerHTML = '<div class="spinner"></div><span style="font-size:13px">已连接模型，等待正文返回…</span>';
+        loading.innerHTML = request.stream === false
+          ? '<div class="spinner"></div><span style="font-size:13px">Claude API 正在生成完整正文，请稍候…</span>'
+          : '<div class="spinner"></div><span style="font-size:13px">已连接模型，等待正文返回…</span>';
       }
       const textEl = document.getElementById('singleText');
       if (textEl) {
