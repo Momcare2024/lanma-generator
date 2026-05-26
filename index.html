@@ -752,6 +752,7 @@ header {
   <div class="api-row" id="apiKeyRow">
     <label>服务商</label>
     <select class="model-select" id="providerSelect" onchange="onProviderChange()">
+      <option value="aicanapi">AICanAPI</option>
       <option value="claude">Claude 兼容</option>
       <option value="openai">OpenAI 兼容</option>
       <option value="gemini">Google Gemini</option>
@@ -961,6 +962,19 @@ const KB_MAX_EXCERPTS = 8;
 const KB_MAX_TOTAL_CHARS = 9000;
 const GENERATION_TIMEOUT_MS = 120000;
 const PROVIDER_CONFIG = {
+  aicanapi: {
+    keyName: 'AICanAPI',
+    protocol: 'anthropic',
+    endpoint: 'https://aicanapi.com/v1/messages',
+    placeholder: '粘贴 AICanAPI 的 API Key',
+    models: [
+      ['claude-haiku-4-5', 'Claude Haiku · 省钱'],
+      ['claude-sonnet-4-6', 'Claude Sonnet · 精品'],
+      ['gemini-2.5-flash', 'Gemini 2.5 Flash'],
+      ['gemini-2.5-pro', 'Gemini 2.5 Pro'],
+      [CUSTOM_MODEL_VALUE, '自定义模型名'],
+    ],
+  },
   claude: {
     keyName: 'Claude 兼容',
     protocol: 'anthropic',
@@ -2502,7 +2516,7 @@ function clearApiKey() {
 }
 
 function getProvider() {
-  return document.getElementById('providerSelect')?.value || 'claude';
+  return document.getElementById('providerSelect')?.value || 'aicanapi';
 }
 
 function getApiKeyStorageKey(provider = getProvider()) {
@@ -2633,6 +2647,8 @@ function loadApiKey() {
   const savedProvider = localStorage.getItem(LS_PROVIDER);
   if (savedProvider && PROVIDER_CONFIG[savedProvider]) {
     document.getElementById('providerSelect').value = savedProvider;
+  } else {
+    document.getElementById('providerSelect').value = 'aicanapi';
   }
   updateProviderUi();
 }
