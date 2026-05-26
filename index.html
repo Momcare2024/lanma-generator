@@ -816,7 +816,7 @@ header {
       </select>
       <label class="endpoint-label" id="endpointLabel">接口地址</label>
       <input class="endpoint-input" type="text" id="apiEndpointInput"
-             placeholder="https://api.example.com/v1/chat/completions" oninput="onEndpointInput()">
+             placeholder="https://ent.aicanapi.com/v1/messages" oninput="onEndpointInput()">
     </div>
   </div>
 
@@ -1011,7 +1011,8 @@ const PROVIDER_CONFIG = {
   aicanapi: {
     keyName: 'Claude API',
     protocol: 'anthropic',
-    endpoint: 'https://aicanapi.com/v1/messages',
+    endpoint: 'https://ent.aicanapi.com/v1/messages',
+    endpointEditable: true,
     stream: false,
     placeholder: '粘贴 Claude API 的 sk-... 密钥',
     models: [
@@ -1023,7 +1024,7 @@ const PROVIDER_CONFIG = {
   claude: {
     keyName: 'Claude 兼容',
     protocol: 'anthropic',
-    endpoint: 'https://aicanapi.com/v1/messages',
+    endpoint: 'https://ent.aicanapi.com/v1/messages',
     placeholder: '粘贴 Claude 兼容 API Key（如 sk-ant-...）',
     models: [
       ['claude-sonnet-4-6', 'Claude Sonnet'],
@@ -2050,7 +2051,7 @@ function buildProviderRequest(apiKey, promptText, retrieval, turns) {
     provider,
     protocol: config.protocol,
     stream: shouldStream,
-    url: config.endpoint,
+    url: getProviderEndpoint(provider),
     options: {
       method: 'POST',
       headers: {
@@ -2796,7 +2797,7 @@ function updateApiHelpText(provider, model) {
   const help = document.getElementById('apiHelpText');
   if (!help) return;
   if (provider === 'aicanapi') {
-    help.textContent = '填你创建的 Claude API 密钥即可；网站会按 Claude 接口直接调用当前选择的模型。';
+    help.textContent = '填 ent.aicanapi.com 创建的 Claude API 密钥即可；接口地址已切到 ent.aicanapi.com/v1/messages。';
     return;
   }
   if (provider === 'claude') {
@@ -2859,11 +2860,16 @@ function updateProviderUi() {
   customModelInput.classList.toggle('show', showCustomModel);
   customModelInput.disabled = !showCustomModel;
 
-  const showEndpoint = !!config.endpointEditable;
+  const showEndpoint = isAdvancedApiOpen() && !!config.endpointEditable;
   endpointInput.classList.toggle('show', showEndpoint);
   endpointLabel.classList.toggle('show', showEndpoint);
   endpointInput.disabled = !showEndpoint;
-  endpointInput.value = localStorage.getItem(getEndpointStorageKey(provider)) || config.endpoint || '';
+  let savedEndpoint = localStorage.getItem(getEndpointStorageKey(provider));
+  if (provider === 'aicanapi' && savedEndpoint && savedEndpoint.includes('aicanapi.com') && !savedEndpoint.includes('ent.aicanapi.com')) {
+    savedEndpoint = config.endpoint;
+    localStorage.setItem(getEndpointStorageKey(provider), savedEndpoint);
+  }
+  endpointInput.value = savedEndpoint || config.endpoint || '';
   updateAdvancedApiVisibility();
   updateApiHelpText(provider, modelSelect.value);
 }
@@ -2911,10 +2917,20 @@ function normalizeOpenAIEndpoint(url) {
   return raw + '/chat/completions';
 }
 
+function normalizeAnthropicEndpoint(url) {
+  const raw = (url || '').trim().replace(/\/+$/, '');
+  if (!raw) return '';
+  if (/\/v1\/messages$/i.test(raw)) return raw;
+  return raw + '/v1/messages';
+}
+
 function getProviderEndpoint(provider = getProvider()) {
   const config = PROVIDER_CONFIG[provider] || PROVIDER_CONFIG.claude;
   if (config.endpointEditable) {
-    return normalizeOpenAIEndpoint(document.getElementById('apiEndpointInput').value);
+    const value = document.getElementById('apiEndpointInput').value;
+    return config.protocol === 'anthropic'
+      ? normalizeAnthropicEndpoint(value)
+      : normalizeOpenAIEndpoint(value);
   }
   return config.endpoint;
 }
