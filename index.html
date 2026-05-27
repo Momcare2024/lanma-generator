@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-version" content="2026-05-27-doc-list-fix">
+<meta name="app-version" content="2026-05-27-aicanapi-model-switch">
 <title>懒妈方宁 · 文案生成器</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -808,6 +808,16 @@ header {
   <!-- API Key（全局） -->
   <div class="api-row" id="apiKeyRow">
     <div class="api-main-line">
+      <label>接口</label>
+      <select class="model-select provider-select" id="providerSelect" onchange="onProviderChange()">
+        <option value="aicanapi">AICanAPI 代理</option>
+        <option value="gemini">Gemini 官方</option>
+        <option value="claude">Claude 官方/兼容</option>
+        <option value="openai">OpenAI 兼容</option>
+        <option value="openrouter">OpenRouter</option>
+        <option value="deepseek">DeepSeek</option>
+        <option value="custom">自定义接口</option>
+      </select>
       <label>API KEY</label>
       <input class="api-key-input" type="password" id="apiKey" placeholder="粘贴 Claude API 的 sk-... 密钥" oninput="onApiKeyInput()">
       <label>模型</label>
@@ -823,16 +833,6 @@ header {
     </div>
     <div class="api-help" id="apiHelpText"></div>
     <div class="advanced-api-panel" id="advancedApiPanel">
-      <label>接口模式</label>
-      <select class="model-select provider-select" id="providerSelect" onchange="onProviderChange()">
-        <option value="aicanapi">Claude API</option>
-        <option value="claude">Claude 官方/兼容</option>
-        <option value="openai">OpenAI 兼容</option>
-        <option value="gemini">Google Gemini 官方</option>
-        <option value="openrouter">OpenRouter</option>
-        <option value="deepseek">DeepSeek</option>
-        <option value="custom">自定义接口</option>
-      </select>
       <label class="endpoint-label" id="endpointLabel">接口地址</label>
       <input class="endpoint-input" type="text" id="apiEndpointInput"
              placeholder="https://ent.aicanapi.com/v1/messages" oninput="onEndpointInput()">
@@ -1029,15 +1029,21 @@ const GENERATION_TIMEOUT_MS = 240000;
 const STREAM_IDLE_TIMEOUT_MS = 60000;
 const PROVIDER_CONFIG = {
   aicanapi: {
-    keyName: 'Claude API',
-    protocol: 'anthropic',
-    endpoint: 'https://ent.aicanapi.com/v1/messages',
+    keyName: 'AICanAPI 代理',
+    protocol: 'auto',
+    endpoints: {
+      anthropic: 'https://ent.aicanapi.com/v1/messages',
+      openai: 'https://ent.aicanapi.com/v1/chat/completions',
+    },
     endpointEditable: true,
     stream: false,
-    placeholder: '粘贴 Claude API 的 sk-... 密钥',
+    placeholder: '粘贴 ent.aicanapi.com 的 sk-... 代理密钥',
     models: [
       ['claude-sonnet-4-6', 'Claude Sonnet'],
       ['claude-haiku-4-5', 'Claude Haiku'],
+      ['gemini-2.5-flash', 'Gemini 2.5 Flash'],
+      ['gemini-2.5-pro', 'Gemini 2.5 Pro'],
+      ['gpt-4o-mini', 'GPT-4o mini'],
       [CUSTOM_MODEL_VALUE, '自定义模型名'],
     ],
   },
@@ -1067,10 +1073,10 @@ const PROVIDER_CONFIG = {
   gemini: {
     keyName: 'Google Gemini',
     protocol: 'gemini',
-    endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent?alt=sse',
+    endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent',
+    stream: false,
     placeholder: '粘贴 Google AI Studio 的 Gemini API Key',
     models: [
-      ['gemini-3.5-flash', 'Gemini 3.5 Flash'],
       ['gemini-2.5-flash', 'Gemini 2.5 Flash'],
       ['gemini-2.5-pro', 'Gemini 2.5 Pro'],
       [CUSTOM_MODEL_VALUE, '自定义模型名'],
@@ -2042,10 +2048,12 @@ async function readStreamChunk(reader, timeoutMs = STREAM_IDLE_TIMEOUT_MS, error
 function buildProviderRequest(apiKey, promptText, retrieval, turns) {
   const provider = getProvider();
   const model = getModel();
-  const config = PROVIDER_CONFIG[provider] || PROVIDER_CONFIG.claude;
+  const config = PROVIDER_CONFIG[provider] || PROVIDER_CONFIG.aicanapi;
+  const protocol = getEffectiveProtocol(provider, model, config);
   const systemText = buildSystemPrompt(promptText, retrieval.refs.length > 0);
 
-  if (config.protocol === 'gemini') {
+  if (protocol === 'gemini') {
+    const shouldStream = config.stream !== false;
     const contents = turns.map((turn, i) => ({
       role: turn.role === 'assistant' ? 'model' : 'user',
       parts: [{
@@ -2054,9 +2062,9 @@ function buildProviderRequest(apiKey, promptText, retrieval, turns) {
     }));
     return {
       provider,
-      protocol: config.protocol,
-      stream: true,
-      url: config.endpoint.replace('{model}', encodeURIComponent(model)),
+      protocol,
+      stream: shouldStream,
+      url: getProviderEndpoint(provider, protocol).replace('{model}', encodeURIComponent(model)),
       options: {
         method: 'POST',
         headers: {
@@ -2071,9 +2079,10 @@ function buildProviderRequest(apiKey, promptText, retrieval, turns) {
     };
   }
 
-  if (config.protocol === 'openai') {
-    const endpoint = getProviderEndpoint(provider);
+  if (protocol === 'openai') {
+    const endpoint = getProviderEndpoint(provider, protocol);
     if (!endpoint) throw new Error('请先填写自定义接口地址');
+    const shouldStream = config.stream !== false;
     const headers = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
@@ -2084,8 +2093,8 @@ function buildProviderRequest(apiKey, promptText, retrieval, turns) {
     }
     return {
       provider,
-      protocol: config.protocol,
-      stream: true,
+      protocol,
+      stream: shouldStream,
       url: endpoint,
       options: {
         method: 'POST',
@@ -2093,7 +2102,7 @@ function buildProviderRequest(apiKey, promptText, retrieval, turns) {
         body: JSON.stringify({
           model,
           max_tokens: 4096,
-          stream: true,
+          stream: shouldStream,
           messages: [
             { role: 'system', content: systemText },
             ...turns,
@@ -2106,9 +2115,9 @@ function buildProviderRequest(apiKey, promptText, retrieval, turns) {
   const shouldStream = config.stream !== false;
   return {
     provider,
-    protocol: config.protocol,
+    protocol,
     stream: shouldStream,
-    url: getProviderEndpoint(provider),
+    url: getProviderEndpoint(provider, protocol),
     options: {
       method: 'POST',
       headers: {
@@ -2805,6 +2814,31 @@ function getProvider() {
   return document.getElementById('providerSelect')?.value || 'aicanapi';
 }
 
+function inferProtocolFromModel(model) {
+  const value = (model || '').toLowerCase();
+  if (value.startsWith('claude') || value.includes('/claude')) return 'anthropic';
+  return 'openai';
+}
+
+function getEffectiveProtocol(provider, model, config = PROVIDER_CONFIG[provider] || PROVIDER_CONFIG.aicanapi) {
+  if (config.protocol === 'auto') return inferProtocolFromModel(model);
+  return config.protocol;
+}
+
+function getDefaultEndpoint(provider, protocol) {
+  const config = PROVIDER_CONFIG[provider] || PROVIDER_CONFIG.aicanapi;
+  if (config.endpoints) return config.endpoints[protocol] || config.endpoint || '';
+  return config.endpoint || '';
+}
+
+function getSelectedModelForEndpoint() {
+  const modelSelect = document.getElementById('modelSelect');
+  const customInput = document.getElementById('customModelInput');
+  const selected = modelSelect?.value || '';
+  if (selected === CUSTOM_MODEL_VALUE) return customInput?.value.trim() || selected;
+  return selected;
+}
+
 function getApiKeyStorageKey(provider = getProvider()) {
   return provider === 'claude' ? LS_APIKEY : `${LS_APIKEY}_${provider}`;
 }
@@ -2813,8 +2847,9 @@ function getModelStorageKey(provider = getProvider()) {
   return provider === 'claude' ? LS_MODEL : `${LS_MODEL}_${provider}`;
 }
 
-function getEndpointStorageKey(provider = getProvider()) {
-  return `${LS_ENDPOINT}_${provider}`;
+function getEndpointStorageKey(provider = getProvider(), protocol = null) {
+  const suffix = protocol ? `_${protocol}` : '';
+  return `${LS_ENDPOINT}_${provider}${suffix}`;
 }
 
 function getCustomModelStorageKey(provider = getProvider()) {
@@ -2824,7 +2859,7 @@ function getCustomModelStorageKey(provider = getProvider()) {
 function onProviderChange() {
   const provider = getProvider();
   localStorage.setItem(LS_PROVIDER, provider);
-  if (provider !== 'aicanapi') localStorage.setItem(LS_API_ADVANCED, '1');
+  if (provider === 'custom') localStorage.setItem(LS_API_ADVANCED, '1');
   updateProviderUi();
 }
 
@@ -2834,10 +2869,6 @@ function isAdvancedApiOpen() {
 
 function toggleAdvancedApi() {
   const nextOpen = !isAdvancedApiOpen();
-  if (!nextOpen && getProvider() !== 'aicanapi') {
-    document.getElementById('providerSelect').value = 'aicanapi';
-    localStorage.setItem(LS_PROVIDER, 'aicanapi');
-  }
   localStorage.setItem(LS_API_ADVANCED, nextOpen ? '1' : '0');
   updateProviderUi();
 }
@@ -2847,14 +2878,17 @@ function updateAdvancedApiVisibility() {
   const panel = document.getElementById('advancedApiPanel');
   const toggle = document.getElementById('advancedApiToggle');
   panel?.classList.toggle('show', open);
-  if (toggle) toggle.textContent = open ? '收起高级' : '高级设置';
+  if (toggle) toggle.textContent = open ? '收起地址' : '接口地址';
 }
 
 function updateApiHelpText(provider, model) {
   const help = document.getElementById('apiHelpText');
   if (!help) return;
   if (provider === 'aicanapi') {
-    help.textContent = '填 ent.aicanapi.com 创建的 Claude API 密钥即可；接口地址已切到 ent.aicanapi.com/v1/messages。';
+    const protocol = getEffectiveProtocol(provider, model || getSelectedModelForEndpoint());
+    help.textContent = protocol === 'anthropic'
+      ? '代理站用这里：API KEY 填 ent.aicanapi.com 的 sk-...；当前 Claude 模型会走 /v1/messages。要换 Gemini，只改右侧模型下拉。'
+      : '代理站用这里：API KEY 填 ent.aicanapi.com 的 sk-...；当前 Gemini/GPT 模型会走 /v1/chat/completions，不要选 Gemini 官方。';
     return;
   }
   if (provider === 'claude') {
@@ -2862,7 +2896,7 @@ function updateApiHelpText(provider, model) {
     return;
   }
   if (provider === 'gemini') {
-    help.textContent = '这里填写 Google AI Studio 的官方 Gemini Key；Claude API 密钥请切回 Claude API。';
+    help.textContent = '这里只给 Google AI Studio 的官方 Gemini Key 使用；ent.aicanapi.com 的代理 Key 请切回 AICanAPI 代理。';
     return;
   }
   if (provider === 'custom') {
@@ -2874,7 +2908,7 @@ function updateApiHelpText(provider, model) {
 
 function updateProviderUi() {
   const provider = getProvider();
-  const config = PROVIDER_CONFIG[provider] || PROVIDER_CONFIG.claude;
+  const config = PROVIDER_CONFIG[provider] || PROVIDER_CONFIG.aicanapi;
   const modelSelect = document.getElementById('modelSelect');
   const apiInput = document.getElementById('apiKey');
   const customModelInput = document.getElementById('customModelInput');
@@ -2917,18 +2951,23 @@ function updateProviderUi() {
   customModelInput.classList.toggle('show', showCustomModel);
   customModelInput.disabled = !showCustomModel;
 
+  const endpointProtocol = getEffectiveProtocol(provider, getSelectedModelForEndpoint() || config.models[0][0], config);
   const showEndpoint = isAdvancedApiOpen() && !!config.endpointEditable;
   endpointInput.classList.toggle('show', showEndpoint);
   endpointLabel.classList.toggle('show', showEndpoint);
   endpointInput.disabled = !showEndpoint;
-  let savedEndpoint = localStorage.getItem(getEndpointStorageKey(provider));
-  if (provider === 'aicanapi' && savedEndpoint && savedEndpoint.includes('aicanapi.com') && !savedEndpoint.includes('ent.aicanapi.com')) {
-    savedEndpoint = config.endpoint;
-    localStorage.setItem(getEndpointStorageKey(provider), savedEndpoint);
+  let savedEndpoint = localStorage.getItem(getEndpointStorageKey(provider, endpointProtocol));
+  const legacyEndpoint = localStorage.getItem(getEndpointStorageKey(provider));
+  if (!savedEndpoint && provider !== 'aicanapi' && legacyEndpoint) {
+    savedEndpoint = legacyEndpoint;
   }
-  endpointInput.value = savedEndpoint || config.endpoint || '';
+  if (provider === 'aicanapi' && savedEndpoint && savedEndpoint.includes('aicanapi.com') && !savedEndpoint.includes('ent.aicanapi.com')) {
+    savedEndpoint = getDefaultEndpoint(provider, endpointProtocol);
+    localStorage.setItem(getEndpointStorageKey(provider, endpointProtocol), savedEndpoint);
+  }
+  endpointInput.value = savedEndpoint || getDefaultEndpoint(provider, endpointProtocol);
   updateAdvancedApiVisibility();
-  updateApiHelpText(provider, modelSelect.value);
+  updateApiHelpText(provider, getSelectedModelForEndpoint());
 }
 
 function onModelChange() {
@@ -2944,17 +2983,21 @@ function onModelChange() {
   } else {
     localStorage.setItem(getModelStorageKey(), selected);
   }
-  updateApiHelpText(getProvider(), selected);
+  updateProviderUi();
 }
 
 function onCustomModelInput() {
   const value = document.getElementById('customModelInput').value.trim();
   localStorage.setItem(getCustomModelStorageKey(), value);
   localStorage.setItem(getModelStorageKey(), value || CUSTOM_MODEL_VALUE);
+  updateProviderUi();
 }
 
 function onEndpointInput() {
-  localStorage.setItem(getEndpointStorageKey(), document.getElementById('apiEndpointInput').value.trim());
+  const provider = getProvider();
+  const config = PROVIDER_CONFIG[provider] || PROVIDER_CONFIG.aicanapi;
+  const protocol = getEffectiveProtocol(provider, getSelectedModelForEndpoint(), config);
+  localStorage.setItem(getEndpointStorageKey(provider, protocol), document.getElementById('apiEndpointInput').value.trim());
 }
 
 function getModel() {
@@ -2981,22 +3024,25 @@ function normalizeAnthropicEndpoint(url) {
   return raw + '/v1/messages';
 }
 
-function getProviderEndpoint(provider = getProvider()) {
-  const config = PROVIDER_CONFIG[provider] || PROVIDER_CONFIG.claude;
+function getProviderEndpoint(provider = getProvider(), protocol = null) {
+  const config = PROVIDER_CONFIG[provider] || PROVIDER_CONFIG.aicanapi;
+  const endpointProtocol = protocol || getEffectiveProtocol(provider, getModel(), config);
+  const defaultEndpoint = getDefaultEndpoint(provider, endpointProtocol);
   if (config.endpointEditable) {
-    const value = document.getElementById('apiEndpointInput').value;
-    return config.protocol === 'anthropic'
+    const value = document.getElementById('apiEndpointInput').value || defaultEndpoint;
+    return endpointProtocol === 'anthropic'
       ? normalizeAnthropicEndpoint(value)
       : normalizeOpenAIEndpoint(value);
   }
-  return config.endpoint;
+  if (endpointProtocol === 'anthropic') return normalizeAnthropicEndpoint(defaultEndpoint);
+  if (endpointProtocol === 'openai') return normalizeOpenAIEndpoint(defaultEndpoint);
+  return defaultEndpoint;
 }
 
 function loadApiKey() {
   const savedProvider = localStorage.getItem(LS_PROVIDER);
   if (savedProvider && PROVIDER_CONFIG[savedProvider]) {
     document.getElementById('providerSelect').value = savedProvider;
-    if (savedProvider !== 'aicanapi') localStorage.setItem(LS_API_ADVANCED, '1');
   } else {
     document.getElementById('providerSelect').value = 'aicanapi';
   }
