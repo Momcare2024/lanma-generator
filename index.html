@@ -3,12 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-version" content="2026-05-27-aicanapi-model-switch">
 <title>懒妈方宁 · 文案生成器</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
-<script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="lanma-vendor/jszip.min.js"></script>
+<script src="lanma-vendor/pdf.min.js"></script>
+<script src="lanma-vendor/marked.min.js"></script>
+<script src="lanma-vendor/xlsx.full.min.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -53,20 +52,12 @@ header {
   display: flex;
   align-items: center;
   gap: 12px;
-  flex-wrap: wrap;
   background: #fff;
   border: 1px solid #ddd5c8;
   border-radius: 10px;
   padding: 14px 18px;
   margin-bottom: 20px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-}
-.api-main-line {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
 }
 .api-row label { font-size: 12px; color: #8a7560; white-space: nowrap; font-weight: 500; }
 .api-row input {
@@ -87,51 +78,6 @@ header {
   white-space: nowrap; flex-shrink: 0;
 }
 .model-select:focus { border-color: #c0622a; }
-.api-key-input { min-width: 260px; }
-.provider-select { min-width: 180px; }
-.api-help {
-  width: 100%;
-  color: #8a7560;
-  font-size: 12px;
-  line-height: 1.6;
-  padding-left: 2px;
-}
-.advanced-api-toggle {
-  padding: 7px 12px;
-  border-radius: 7px;
-  border: 1px solid #ddd5c8;
-  background: #faf7f2;
-  color: #8a7560;
-  font-size: 12px;
-  font-family: inherit;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.advanced-api-toggle:hover { border-color: #c0622a; color: #c0622a; background: #fff; }
-.advanced-api-panel {
-  width: 100%;
-  display: none;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding-top: 10px;
-  border-top: 1px dashed #e5d8c8;
-}
-.advanced-api-panel.show { display: flex; }
-.custom-model-input {
-  flex: 0 1 220px !important;
-  min-width: 180px;
-  display: none;
-}
-.custom-model-input.show { display: block; }
-.endpoint-input {
-  flex: 1 1 420px !important;
-  min-width: 280px;
-  display: none;
-}
-.endpoint-input.show { display: block; }
-.endpoint-label { display: none; }
-.endpoint-label.show { display: inline-block; }
 
 /* 课程Tab栏 */
 .course-tabs-row {
@@ -245,17 +191,6 @@ header {
 }
 .save-prompt-btn:hover { background: #a8541f; }
 .save-prompt-btn.saved { background: #4a7c59; }
-.prompt-save-state {
-  font-size: 11px;
-  color: #8a7560;
-  background: #f5ede0;
-  border-radius: 10px;
-  padding: 2px 8px;
-  display: none;
-}
-.prompt-save-state.show { display: inline-block; }
-.prompt-save-state.dirty { color: #9a6b00; background: #fff8e0; }
-.prompt-save-state.saved { color: #4a7c59; background: #eaf4ee; }
 .prompt-textarea {
   width: 100%;
   min-height: 180px;
@@ -313,17 +248,7 @@ header {
 .upload-btn:hover { background: #a8541f; }
 .upload-hint { font-size: 12px; color: #8a7560; line-height: 1.6; }
 .upload-hint strong { color: #1a1208; }
-.doc-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-  max-height: 132px;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-.doc-list::-webkit-scrollbar { width: 3px; }
-.doc-list::-webkit-scrollbar-thumb { background: #ddd5c8; border-radius: 2px; }
+.doc-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .doc-chip {
   display: flex;
   align-items: center;
@@ -340,26 +265,6 @@ header {
 .doc-chip .size { color: #8a7560; font-size: 11px; }
 .doc-chip button { background: none; border: none; cursor: pointer; color: #8a7560; font-size: 14px; padding: 0; line-height: 1; }
 .doc-chip button:hover { color: #c0392b; }
-.doc-status {
-  display: none;
-  margin-top: 8px;
-  color: #4a7c59;
-  font-size: 12px;
-  line-height: 1.5;
-}
-.doc-status.show { display: block; }
-.storage-notice {
-  display: none;
-  margin-top: 10px;
-  padding: 8px 10px;
-  border: 1px solid #f0c840;
-  background: #fff8e0;
-  color: #7a5600;
-  border-radius: 8px;
-  font-size: 12px;
-  line-height: 1.6;
-}
-.storage-notice.show { display: block; }
 
 /* 工作区 */
 .workspace {
@@ -452,15 +357,6 @@ header {
 }
 .gen-btn:hover:not(:disabled) { background: #a8541f; transform: translateY(-1px); }
 .gen-btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
-.stop-btn {
-  width: 100%; padding: 10px;
-  background: none; color: #c0392b;
-  border: 1px solid #efb2a8; border-radius: 10px;
-  font-size: 13px; font-family: inherit; font-weight: 600;
-  cursor: pointer; display: none;
-}
-.stop-btn.show { display: block; }
-.stop-btn:hover { background: #fde8e8; }
 
 .export-row {
   display: none;
@@ -529,7 +425,6 @@ header {
   font-size: 11px; color: #c0622a;
   background: rgba(192,98,42,0.1);
   padding: 2px 8px; border-radius: 10px; white-space: nowrap; flex-shrink: 0;
-  max-width: 240px; overflow: hidden; text-overflow: ellipsis;
 }
 .result-actions { display: flex; gap: 6px; flex-shrink: 0; }
 .copy-btn {
@@ -558,54 +453,6 @@ header {
 .result-body { padding: 20px; max-height: 620px; overflow-y: auto; }
 .result-body::-webkit-scrollbar { width: 3px; }
 .result-body::-webkit-scrollbar-thumb { background: #ddd5c8; border-radius: 2px; }
-.result-insights {
-  display: none;
-  border-bottom: 1px solid #eee2d4;
-  background: #fffaf5;
-  padding: 12px 16px;
-}
-.result-insights.show { display: block; }
-.insight-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  margin-bottom: 8px;
-}
-.insight-row:last-child { margin-bottom: 0; }
-.insight-label { font-size: 12px; font-weight: 600; color: #665544; }
-.audit-chip, .ref-chip {
-  border-radius: 20px;
-  padding: 3px 9px;
-  font-size: 11px;
-  border: 1px solid #ddd5c8;
-  background: #fff;
-  color: #665544;
-}
-.audit-chip.pass { border-color: #4a7c59; background: #eaf4ee; color: #3a6347; }
-.audit-chip.warn { border-color: #f0c840; background: #fff8e0; color: #8a6500; }
-.ref-preview {
-  margin-top: 8px;
-  border: 1px solid #eee2d4;
-  border-radius: 8px;
-  background: #fff;
-  overflow: hidden;
-}
-.ref-preview summary {
-  cursor: pointer;
-  padding: 8px 10px;
-  font-size: 12px;
-  color: #8a7560;
-}
-.ref-preview-list {
-  border-top: 1px solid #eee2d4;
-  padding: 8px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.ref-preview-item { font-size: 12px; color: #665544; line-height: 1.65; }
-.ref-preview-source { color: #c0622a; font-weight: 600; }
 
 /* 流式阶段 */
 .result-text { font-size: 14px; line-height: 1.95; color: #1a1208; }
@@ -665,18 +512,6 @@ header {
   display: none;
 }
 .api-saved-badge.show { display: inline-block; }
-.clear-api-btn {
-  padding: 6px 10px;
-  border: 1px solid #ddd5c8;
-  border-radius: 7px;
-  background: none;
-  color: #8a7560;
-  font-size: 12px;
-  font-family: inherit;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.clear-api-btn:hover { border-color: #c0392b; color: #c0392b; }
 
 /* 批量导入按钮 */
 .batch-import-btn {
@@ -807,36 +642,13 @@ header {
 
   <!-- API Key（全局） -->
   <div class="api-row" id="apiKeyRow">
-    <div class="api-main-line">
-      <label>接口</label>
-      <select class="model-select provider-select" id="providerSelect" onchange="onProviderChange()">
-        <option value="aicanapi">AICanAPI 代理</option>
-        <option value="gemini">Gemini 官方</option>
-        <option value="claude">Claude 官方/兼容</option>
-        <option value="openai">OpenAI 兼容</option>
-        <option value="openrouter">OpenRouter</option>
-        <option value="deepseek">DeepSeek</option>
-        <option value="custom">自定义接口</option>
-      </select>
-      <label>API KEY</label>
-      <input class="api-key-input" type="password" id="apiKey" placeholder="粘贴 Claude API 的 sk-... 密钥" oninput="onApiKeyInput()">
-      <label>模型</label>
-      <select class="model-select" id="modelSelect" onchange="onModelChange()">
-        <option value="claude-sonnet-4-6">Claude Sonnet</option>
-        <option value="claude-haiku-4-5">Claude Haiku</option>
-      </select>
-      <input class="custom-model-input" type="text" id="customModelInput"
-             placeholder="输入自定义模型名" oninput="onCustomModelInput()">
-      <span class="api-saved-badge" id="apiSavedBadge">🔒 已记住</span>
-      <button class="clear-api-btn" type="button" onclick="clearApiKey()">清除</button>
-      <button class="advanced-api-toggle" type="button" id="advancedApiToggle" onclick="toggleAdvancedApi()">高级设置</button>
-    </div>
-    <div class="api-help" id="apiHelpText"></div>
-    <div class="advanced-api-panel" id="advancedApiPanel">
-      <label class="endpoint-label" id="endpointLabel">接口地址</label>
-      <input class="endpoint-input" type="text" id="apiEndpointInput"
-             placeholder="https://ent.aicanapi.com/v1/messages" oninput="onEndpointInput()">
-    </div>
+    <label>API KEY</label>
+    <input type="password" id="apiKey" placeholder="粘贴 ent.aicanapi.com 后台生成的 sk-... API Key" oninput="onApiKeyInput()">
+    <select class="model-select" id="modelSelect" onchange="onModelChange()">
+      <option value="claude-haiku-4-5">Haiku · 省钱</option>
+      <option value="claude-sonnet-4-6">Sonnet · 精品</option>
+    </select>
+    <span class="api-saved-badge" id="apiSavedBadge">🔒 已记住</span>
   </div>
 
   <!-- 课程Tab栏 -->
@@ -855,7 +667,6 @@ header {
     <div class="section-header">
       <div class="section-title">专属提示词</div>
       <div class="prompt-meta">
-        <span class="prompt-save-state" id="promptSaveState">已保存</span>
         <span class="prompt-chars" id="promptChars">0 字符</span>
         <button class="save-prompt-btn" type="button" id="savePromptBtn" onclick="savePrompt()">保存提示词</button>
       </div>
@@ -881,8 +692,6 @@ header {
       </div>
     </div>
     <div class="doc-list" id="docList"></div>
-    <div class="doc-status" id="docStatus"></div>
-    <div class="storage-notice" id="storageNotice"></div>
   </div>
 
   <!-- 工作区 -->
@@ -893,7 +702,6 @@ header {
       <button class="batch-import-btn" type="button" id="batchImportBtn" onclick="openBatchModal()">📊 批量导入（表格）</button>
       <button class="add-task-btn" type="button" onclick="addTask()">＋ 添加一篇</button>
       <button class="gen-btn" type="button" id="genBtn" onclick="generateAll()">开始生成文章</button>
-      <button class="stop-btn" type="button" id="stopBtn" onclick="stopGeneration()">停止生成</button>
       <div class="export-row" id="exportRow">
         <button class="export-btn-xlsx" type="button" onclick="exportToXlsx()">⬇ 导出 Excel</button>
         <button class="export-btn-md" type="button" onclick="exportAllMd()">⬇ MD 压缩包</button>
@@ -922,7 +730,6 @@ header {
             <button class="copy-btn" id="singleCopyBtn" type="button" onclick="copyActiveResult()" disabled>复制 MD</button>
           </div>
         </div>
-        <div class="result-insights" id="resultInsights"></div>
         <div class="result-body" id="singleBody">
           <div class="loading-box" id="singleLoading">
             <div class="spinner"></div>
@@ -998,7 +805,7 @@ header {
 // PDF.js worker
 if (typeof pdfjsLib !== 'undefined') {
   pdfjsLib.GlobalWorkerOptions.workerSrc =
-    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    'lanma-vendor/pdf.worker.min.js';
 }
 
 // marked 配置
@@ -1016,108 +823,6 @@ let taskSeq = 0;
 let courseDocs = {};       // {courseId: [{name, size, content}]} — 不持久化
 let activeViewId = null;   // 右侧当前显示哪个任务
 let isGenerating = false;  // 生成中标志，防止切换课程
-let promptDirty = false;
-let generationStopRequested = false;
-let activeAbortController = null;
-
-const CUSTOM_MODEL_VALUE = '__custom__';
-const KB_CHUNK_SIZE = 1200;
-const KB_CHUNK_OVERLAP = 160;
-const KB_MAX_EXCERPTS = 8;
-const KB_MAX_TOTAL_CHARS = 9000;
-const GENERATION_TIMEOUT_MS = 240000;
-const STREAM_IDLE_TIMEOUT_MS = 60000;
-const PROVIDER_CONFIG = {
-  aicanapi: {
-    keyName: 'AICanAPI 代理',
-    protocol: 'auto',
-    endpoints: {
-      anthropic: 'https://ent.aicanapi.com/v1/messages',
-      openai: 'https://ent.aicanapi.com/v1/chat/completions',
-    },
-    endpointEditable: true,
-    stream: false,
-    placeholder: '粘贴 ent.aicanapi.com 的 sk-... 代理密钥',
-    models: [
-      ['claude-sonnet-4-6', 'Claude Sonnet'],
-      ['claude-haiku-4-5', 'Claude Haiku'],
-      ['gemini-2.5-flash', 'Gemini 2.5 Flash'],
-      ['gemini-2.5-pro', 'Gemini 2.5 Pro'],
-      ['gpt-4o-mini', 'GPT-4o mini'],
-      [CUSTOM_MODEL_VALUE, '自定义模型名'],
-    ],
-  },
-  claude: {
-    keyName: 'Claude 兼容',
-    protocol: 'anthropic',
-    endpoint: 'https://ent.aicanapi.com/v1/messages',
-    placeholder: '粘贴 Claude 兼容 API Key（如 sk-ant-...）',
-    models: [
-      ['claude-sonnet-4-6', 'Claude Sonnet'],
-      ['claude-haiku-4-5', 'Claude Haiku'],
-      [CUSTOM_MODEL_VALUE, '自定义模型名'],
-    ],
-  },
-  openai: {
-    keyName: 'OpenAI 兼容',
-    protocol: 'openai',
-    endpoint: 'https://api.openai.com/v1/chat/completions',
-    placeholder: '粘贴 OpenAI 或兼容服务的 API Key',
-    models: [
-      ['gpt-4o-mini', 'GPT-4o mini'],
-      ['gpt-4o', 'GPT-4o'],
-      ['o4-mini', 'o4-mini'],
-      [CUSTOM_MODEL_VALUE, '自定义模型名'],
-    ],
-  },
-  gemini: {
-    keyName: 'Google Gemini',
-    protocol: 'gemini',
-    endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent',
-    stream: false,
-    placeholder: '粘贴 Google AI Studio 的 Gemini API Key',
-    models: [
-      ['gemini-2.5-flash', 'Gemini 2.5 Flash'],
-      ['gemini-2.5-pro', 'Gemini 2.5 Pro'],
-      [CUSTOM_MODEL_VALUE, '自定义模型名'],
-    ],
-  },
-  openrouter: {
-    keyName: 'OpenRouter',
-    protocol: 'openai',
-    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
-    placeholder: '粘贴 OpenRouter API Key',
-    models: [
-      ['openai/gpt-4o-mini', 'OpenAI GPT-4o mini'],
-      ['anthropic/claude-3.5-sonnet', 'Claude 3.5 Sonnet'],
-      ['google/gemini-2.5-flash', 'Gemini 2.5 Flash'],
-      ['deepseek/deepseek-chat', 'DeepSeek Chat'],
-      [CUSTOM_MODEL_VALUE, '自定义模型名'],
-    ],
-  },
-  deepseek: {
-    keyName: 'DeepSeek',
-    protocol: 'openai',
-    endpoint: 'https://api.deepseek.com/chat/completions',
-    placeholder: '粘贴 DeepSeek API Key',
-    models: [
-      ['deepseek-v4-flash', 'DeepSeek V4 Flash'],
-      ['deepseek-v4-pro', 'DeepSeek V4 Pro'],
-      ['deepseek-chat', 'DeepSeek Chat（旧名）'],
-      [CUSTOM_MODEL_VALUE, '自定义模型名'],
-    ],
-  },
-  custom: {
-    keyName: '自定义接口',
-    protocol: 'openai',
-    endpoint: '',
-    endpointEditable: true,
-    placeholder: '粘贴该接口的 API Key',
-    models: [
-      [CUSTOM_MODEL_VALUE, '自定义模型名'],
-    ],
-  },
-};
 
 // ============================================================
 // localStorage
@@ -1130,8 +835,6 @@ function saveToStorage() {
     status: t.status === 'run' ? 'wait' : (t.status || 'wait'),
     result: t.result || '',
     refName: t.refName || '',
-    refSummary: t.refSummary || [],
-    audit: t.audit || null,
     truncated: t.truncated || false,
   });
   const base = {
@@ -1148,13 +851,11 @@ function saveToStorage() {
       docsData[cid] = docs.map(d => ({ name: d.name, size: d.size, content: d.content }));
     }
     localStorage.setItem(LS_KEY, JSON.stringify({ ...base, courseDocs: docsData }));
-    showStorageNotice('');
     return;
   } catch(e) {}
   // 优先级 2：结果保留，文档舍弃（文章比文档重要）
   try {
     localStorage.setItem(LS_KEY, JSON.stringify(base));
-    showStorageNotice('资料库内容过大，浏览器只保存了课程和文章结果；请及时导出备份，或减少单次上传的资料体积。');
     return;
   } catch(e) {}
   // 优先级 3：只保存结构，不保存内容（最后兜底）
@@ -1166,20 +867,7 @@ function saveToStorage() {
       }))
     };
     localStorage.setItem(LS_KEY, JSON.stringify(minimal));
-    showStorageNotice('浏览器本地存储空间不足，只保存了课程结构。建议立即导出备份，并清理部分资料或生成结果。');
   } catch(e) {}
-}
-
-function showStorageNotice(message) {
-  const el = document.getElementById('storageNotice');
-  if (!el) return;
-  if (!message) {
-    el.textContent = '';
-    el.classList.remove('show');
-    return;
-  }
-  el.textContent = message;
-  el.classList.add('show');
 }
 
 function loadFromStorage() {
@@ -1195,8 +883,6 @@ function loadFromStorage() {
         status: t.status === 'done' ? 'done' : 'wait',
         result: t.result || '',
         refName: t.refName || '',
-        refSummary: Array.isArray(t.refSummary) ? t.refSummary : [],
-        audit: t.audit || null,
         errorMsg: '',
         truncated: t.truncated || false,
       }))
@@ -1251,54 +937,19 @@ function onCourseNameChange() {
 }
 
 function savePrompt() {
-  persistPromptFromTextarea(true);
-}
-
-function persistPromptFromTextarea(showSaved) {
   const c = getCurrentCourse();
-  if (!c) return '';
+  if (!c) return;
   c.prompt = document.getElementById('promptTextarea').value;
-  promptDirty = false;
   saveToStorage();
-  updatePromptSaveState(showSaved ? 'saved' : 'autosaved');
-  return c.prompt;
+  const btn = document.getElementById('savePromptBtn');
+  btn.textContent = '已保存 ✓';
+  btn.classList.add('saved');
+  setTimeout(() => { btn.textContent = '保存提示词'; btn.classList.remove('saved'); }, 2000);
 }
 
 function onPromptInput() {
   document.getElementById('promptChars').textContent =
     document.getElementById('promptTextarea').value.length + ' 字符';
-  promptDirty = true;
-  updatePromptSaveState('dirty');
-}
-
-function updatePromptSaveState(state) {
-  const stateEl = document.getElementById('promptSaveState');
-  const btn = document.getElementById('savePromptBtn');
-  if (!stateEl || !btn) return;
-  stateEl.classList.remove('show', 'dirty', 'saved');
-  btn.classList.remove('saved');
-
-  if (state === 'dirty') {
-    stateEl.textContent = '未保存';
-    stateEl.classList.add('show', 'dirty');
-    btn.textContent = '保存提示词';
-    return;
-  }
-  if (state === 'saved' || state === 'autosaved') {
-    stateEl.textContent = state === 'autosaved' ? '已自动保存' : '已保存';
-    stateEl.classList.add('show', 'saved');
-    btn.textContent = state === 'autosaved' ? '已自动保存 ✓' : '已保存 ✓';
-    btn.classList.add('saved');
-    setTimeout(() => {
-      if (!promptDirty) {
-        stateEl.classList.remove('show', 'dirty', 'saved');
-        btn.textContent = '保存提示词';
-        btn.classList.remove('saved');
-      }
-    }, 2200);
-    return;
-  }
-  btn.textContent = '保存提示词';
 }
 
 // ============================================================
@@ -1326,8 +977,6 @@ function renderCourseArea() {
   document.getElementById('courseNameInput').value = c.name;
   document.getElementById('promptTextarea').value = c.prompt;
   document.getElementById('promptChars').textContent = c.prompt.length + ' 字符';
-  promptDirty = false;
-  updatePromptSaveState('');
   renderDocList();
   renderTaskList();
   renderRightPanel();
@@ -1341,7 +990,6 @@ function renderDocList() {
     appendDocChip(doc.name, doc.size, 'ok');
   }
   updateDocCount();
-  updateDocStatus();
 }
 
 function renderTaskList() {
@@ -1355,56 +1003,6 @@ function renderTaskList() {
 // ============================================================
 // 右侧面板（单篇查看）
 // ============================================================
-function renderMarkdownSafe(text) {
-  const raw = (typeof marked !== 'undefined' && marked.parse) ? marked.parse(text || '') : escAttr(text || '');
-  const tpl = document.createElement('template');
-  tpl.innerHTML = raw;
-  tpl.content.querySelectorAll('script, iframe, object, embed, style, link, meta').forEach(el => el.remove());
-  tpl.content.querySelectorAll('*').forEach(el => {
-    for (const attr of Array.from(el.attributes)) {
-      const name = attr.name.toLowerCase();
-      const value = attr.value.trim().toLowerCase();
-      if (name.startsWith('on') || value.startsWith('javascript:')) {
-        el.removeAttribute(attr.name);
-      }
-    }
-  });
-  return tpl.innerHTML;
-}
-
-function renderResultInsights(task) {
-  const box = document.getElementById('resultInsights');
-  if (!box) return;
-  const refs = Array.isArray(task.refSummary) ? task.refSummary : [];
-  const audit = task.audit;
-  if (refs.length === 0 && !audit) {
-    box.classList.remove('show');
-    box.innerHTML = '';
-    return;
-  }
-
-  const refChips = refs.length
-    ? refs.slice(0, 5).map(r => `<span class="ref-chip">${escAttr(r.source)} · 片段${r.index}</span>`).join('')
-    : '<span class="audit-chip warn">未命中资料</span>';
-  const auditChips = audit?.items?.length
-    ? audit.items.map(item => `<span class="audit-chip ${item.pass ? 'pass' : 'warn'}">${item.pass ? '✓' : '!'} ${escAttr(item.label)}</span>`).join('')
-    : '';
-  const refPreview = refs.length
-    ? `<details class="ref-preview">
-        <summary>查看本篇命中的资料摘录（${refs.length} 段）</summary>
-        <div class="ref-preview-list">
-          ${refs.map(r => `<div class="ref-preview-item"><span class="ref-preview-source">${escAttr(r.source)} · 片段${r.index}</span><br>${escAttr(r.excerpt)}</div>`).join('')}
-        </div>
-      </details>`
-    : '';
-
-  box.innerHTML = `
-    <div class="insight-row"><span class="insight-label">资料命中</span>${refChips}</div>
-    ${auditChips ? `<div class="insight-row"><span class="insight-label">转化检查</span>${auditChips}</div>` : ''}
-    ${refPreview}`;
-  box.classList.add('show');
-}
-
 function renderRightPanel() {
   const c = getCurrentCourse();
   const startedTasks = c?.tasks.filter(t => t.status === 'run' || t.status === 'done' || t.status === 'error') || [];
@@ -1417,7 +1015,6 @@ function renderRightPanel() {
     emptyState.style.display = '';
     articleNav.style.display = 'none';
     resultCard.style.display = 'none';
-    document.getElementById('resultInsights').classList.remove('show');
     return;
   }
 
@@ -1461,7 +1058,6 @@ function renderRightPanel() {
   const loading = document.getElementById('singleLoading');
   const textEl = document.getElementById('singleText');
   const copyBtn = document.getElementById('singleCopyBtn');
-  renderResultInsights(task);
 
   if (task.status === 'run') {
     loading.innerHTML = '<div class="spinner"></div><span style="font-size:13px">正在创作，请稍候…</span>';
@@ -1475,7 +1071,7 @@ function renderRightPanel() {
     loading.style.display = 'none';
     textEl.style.display = 'block';
     textEl.classList.remove('streaming');
-    textEl.innerHTML = renderMarkdownSafe(task.result);
+    textEl.innerHTML = marked.parse(task.result);
     copyBtn.disabled = false;
     const showWarn = !!task.truncated;
     document.getElementById('truncatedBadge').style.display = showWarn ? '' : 'none';
@@ -1575,39 +1171,28 @@ function onFileChange(e) {
 async function processFiles(files) {
   if (!courseDocs[currentCourseId]) courseDocs[currentCourseId] = [];
   const docs = courseDocs[currentCourseId];
-  let successCount = 0;
-  let skippedCount = 0;
-  let failedCount = 0;
-  showDocStatus(`正在读取 ${files.length} 个文件…`, 'loading');
   for (const file of Array.from(files)) {
     const ext = file.name.split('.').pop().toLowerCase();
-    if (!['docx', 'md', 'txt', 'pdf'].includes(ext)) {
-      failedCount++;
+    if (!['docx', 'doc', 'md', 'txt', 'pdf'].includes(ext)) {
       alert('不支持的文件格式：' + file.name); continue;
     }
-    if (docs.find(d => d.name === file.name)) {
-      skippedCount++;
-      continue;
-    }
+    if (docs.find(d => d.name === file.name)) continue;
     appendDocChip(file.name, file.size, 'loading');
     try {
       let content = '';
-      if (ext === 'docx') content = await readDocx(file);
+      if (ext === 'docx' || ext === 'doc') content = await readDocx(file);
       else if (ext === 'pdf') content = await readPdf(file);
       else content = await readAsText(file);
       if (!content || content.trim().length < 10) throw new Error('文件内容为空或无法解析');
       docs.push({ name: file.name, size: file.size, content });
       updateChipState(file.name, 'ok');
-      successCount++;
       saveToStorage();
     } catch(err) {
-      failedCount++;
       removeChip(file.name);
       alert('读取失败：' + file.name + '\n' + err.message);
     }
   }
   updateDocCount();
-  updateDocStatus(successCount, skippedCount, failedCount);
 }
 
 async function readDocx(file) {
@@ -1651,27 +1236,13 @@ function appendDocChip(name, size, state) {
   const list = document.getElementById('docList');
   const ext = name.split('.').pop().toLowerCase();
   const icon = state === 'loading' ? '⏳'
-    : ext === 'docx' ? '📄'
+    : ext === 'docx' || ext === 'doc' ? '📄'
     : ext === 'md' ? '📝' : ext === 'pdf' ? '📕' : '📃';
   const sizeStr = size > 1024*1024 ? (size/1024/1024).toFixed(1)+'MB' : Math.round(size/1024)+'KB';
   const chip = document.createElement('div');
   chip.className = 'doc-chip ' + state;
   chip.id = 'chip_' + chipId(name);
-  const iconEl = document.createElement('span');
-  iconEl.className = 'chip-icon';
-  iconEl.textContent = icon;
-  const nameEl = document.createElement('span');
-  nameEl.className = 'name';
-  nameEl.title = name;
-  nameEl.textContent = name;
-  const sizeEl = document.createElement('span');
-  sizeEl.className = 'size';
-  sizeEl.textContent = sizeStr;
-  const removeBtn = document.createElement('button');
-  removeBtn.type = 'button';
-  removeBtn.textContent = '×';
-  removeBtn.onclick = () => removeDoc(name);
-  chip.append(iconEl, nameEl, sizeEl, removeBtn);
+  chip.innerHTML = `<span class="chip-icon">${icon}</span><span class="name" title="${name}">${name}</span><span class="size">${sizeStr}</span><button type="button" onclick="removeDoc('${name.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">×</button>`;
   list.appendChild(chip);
 }
 
@@ -1681,48 +1252,23 @@ function updateChipState(name, state) {
   chip.className = 'doc-chip ' + state;
   const ext = name.split('.').pop().toLowerCase();
   chip.querySelector('.chip-icon').textContent =
-    ext === 'docx' ? '📄' : ext === 'md' ? '📝' : ext === 'pdf' ? '📕' : '📃';
+    ext === 'docx' || ext === 'doc' ? '📄' : ext === 'md' ? '📝' : ext === 'pdf' ? '📕' : '📃';
 }
 
 function removeChip(name) { document.getElementById('chip_' + chipId(name))?.remove(); }
-function chipId(name) {
-  return Array.from(name || '').map(ch => ch.codePointAt(0).toString(36)).join('_');
-}
+function chipId(name) { return name.replace(/[^a-zA-Z0-9]/g, '_'); }
 
 function removeDoc(name) {
   if (courseDocs[currentCourseId])
     courseDocs[currentCourseId] = courseDocs[currentCourseId].filter(d => d.name !== name);
   removeChip(name);
   updateDocCount();
-  updateDocStatus();
   saveToStorage();
 }
 
 function updateDocCount() {
   document.getElementById('docCountBadge').textContent =
     (courseDocs[currentCourseId] || []).length + ' 个文档';
-}
-
-function showDocStatus(text, type = 'ok') {
-  const el = document.getElementById('docStatus');
-  if (!el) return;
-  el.textContent = text || '';
-  el.classList.toggle('show', !!text);
-  el.style.color = type === 'loading' ? '#8a7560' : (type === 'error' ? '#c0392b' : '#4a7c59');
-}
-
-function updateDocStatus(successCount = 0, skippedCount = 0, failedCount = 0) {
-  const total = (courseDocs[currentCourseId] || []).length;
-  if (successCount || skippedCount || failedCount) {
-    const parts = [];
-    if (successCount) parts.push(`成功上传 ${successCount} 个`);
-    if (skippedCount) parts.push(`已跳过重复 ${skippedCount} 个`);
-    if (failedCount) parts.push(`失败 ${failedCount} 个`);
-    parts.push(`当前资料库共 ${total} 个文档`);
-    showDocStatus(parts.join('，'), failedCount ? 'error' : 'ok');
-    return;
-  }
-  showDocStatus(total ? `已加载 ${total} 个文档，生成时会自动检索这些资料。` : '');
 }
 
 // ============================================================
@@ -1732,7 +1278,7 @@ function addTask() {
   const c = getCurrentCourse();
   if (!c) return;
   taskSeq++;
-  const task = { id: taskSeq, title: '', material: '', status: 'wait', result: '', refName: '', refSummary: [], audit: null, errorMsg: '' };
+  const task = { id: taskSeq, title: '', material: '', status: 'wait', result: '', refName: '', errorMsg: '' };
   c.tasks.push(task);
   document.getElementById('tasksWrap').appendChild(buildTaskCard(task));
   saveToStorage();
@@ -1787,552 +1333,22 @@ function setTaskStatus(id, status) {
 // ============================================================
 // 匹配课程资料
 // ============================================================
-function cleanDocText(text) {
-  return (text || '')
-    .replace(/\r/g, '')
-    .replace(/[ \t]+/g, ' ')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}
-
-function splitDocIntoChunks(doc) {
-  const raw = cleanDocText(doc.content);
-  if (!raw) return [];
-  const pieces = raw
-    .replace(/([。！？；;!?])/g, '$1\n')
-    .split(/\n+/)
-    .map(p => p.trim())
-    .filter(Boolean);
-  const chunks = [];
-  let buf = '';
-
-  const pushBuf = () => {
-    const text = buf.trim();
-    if (text) chunks.push({ doc, text, index: chunks.length + 1 });
-    buf = '';
-  };
-
-  for (const piece of pieces) {
-    if (piece.length > KB_CHUNK_SIZE) {
-      pushBuf();
-      const step = Math.max(200, KB_CHUNK_SIZE - KB_CHUNK_OVERLAP);
-      for (let i = 0; i < piece.length; i += step) {
-        chunks.push({ doc, text: piece.slice(i, i + KB_CHUNK_SIZE), index: chunks.length + 1 });
-      }
-      continue;
-    }
-    if ((buf + '\n' + piece).trim().length > KB_CHUNK_SIZE) pushBuf();
-    buf = buf ? (buf + '\n' + piece) : piece;
-  }
-  pushBuf();
-  return chunks;
-}
-
-function countTerm(text, term) {
-  if (!term) return 0;
-  let count = 0, pos = 0;
-  while ((pos = text.indexOf(term, pos)) !== -1) {
-    count++;
-    pos += Math.max(1, term.length);
-  }
-  return count;
-}
-
-function addSearchTerm(map, term, weight) {
-  const t = (term || '').toLowerCase().trim();
-  if (t.length < 2) return;
-  const stop = ['一个','这个','那个','我们','你们','他们','自己','孩子','妈妈','家长','课程','文案','标题','素材','读者','留言','需要','可以','因为','所以','但是','如果','什么','怎么','不是','没有','时候','很多'];
-  if (stop.includes(t)) return;
-  map.set(t, Math.max(map.get(t) || 0, weight));
-}
-
-function addChineseNgrams(map, text, weight) {
-  const runs = (text || '').match(/[\u4e00-\u9fff]{2,}/g) || [];
-  for (const run of runs) {
-    if (run.length <= 12) addSearchTerm(map, run, weight + 6);
-    for (const n of [2, 3, 4]) {
-      for (let i = 0; i <= run.length - n; i++) {
-        addSearchTerm(map, run.slice(i, i + n), Math.max(1, weight - n));
-      }
-    }
-  }
-}
-
-function extractSearchTerms(title, material, promptText) {
-  const terms = new Map();
-  const taskText = `${title || ''}\n${material || ''}`;
-  const promptHint = (promptText || '').slice(0, 1200);
-  const splitRe = /[\s，。？！、：；""''（）【】《》\[\]\n,.!?;:()]+/;
-
-  taskText.split(splitRe).forEach(part => addSearchTerm(terms, part, 18));
-  addChineseNgrams(terms, taskText, 10);
-
-  // 提示词只作为弱信号，避免把通用写作要求当成资料检索主题。
-  promptHint.split(splitRe).forEach(part => {
-    if (part.length >= 4) addSearchTerm(terms, part, 3);
-  });
-  addChineseNgrams(terms, promptHint, 2);
-
-  return [...terms.entries()].map(([term, weight]) => ({ term, weight }));
-}
-
-function scoreKnowledgeChunk(chunk, terms) {
-  const text = cleanDocText(chunk.text).toLowerCase();
-  const name = (chunk.doc.name || '').toLowerCase();
-  let score = 0;
-  for (const { term, weight } of terms) {
-    const hits = countTerm(text, term);
-    if (hits) score += Math.min(hits, 4) * weight;
-    if (name.includes(term)) score += weight * 2;
-  }
-  for (const anchor of ['案例','工具','方法','练习','话术','讲','模块','适合','改变','结果','报名','购买','转化']) {
-    if (text.includes(anchor)) score += 2;
-  }
-  return score;
-}
-
-function retrieveKnowledge(title, material, promptText) {
+function findRelevantDoc(title, material) {
   const docs = courseDocs[currentCourseId] || [];
-  if (docs.length === 0) return { refs: [], refName: '', context: '' };
-  const chunks = docs.flatMap(splitDocIntoChunks);
-  if (chunks.length === 0) return { refs: [], refName: '', context: '' };
-
-  const terms = extractSearchTerms(title, material, promptText);
-  const scored = chunks
-    .map(chunk => ({ ...chunk, score: scoreKnowledgeChunk(chunk, terms) }))
-    .sort((a, b) => b.score - a.score);
-
-  const selected = [];
-  let total = 0;
-  for (const item of scored) {
-    if (selected.length >= KB_MAX_EXCERPTS) break;
-    const shouldUse = item.score > 0 || selected.length < Math.min(3, scored.length);
-    if (!shouldUse) continue;
-    if (total + item.text.length > KB_MAX_TOTAL_CHARS && selected.length >= 3) continue;
-    selected.push(item);
-    total += item.text.length;
-  }
-  const refs = selected.length ? selected : scored.slice(0, Math.min(3, scored.length));
-  const names = [...new Set(refs.map(r => r.doc.name))];
-  const refName = names.length > 2 ? `${names.slice(0, 2).join('、')} 等 ${names.length} 个资料` : names.join('、');
-  const context = refs.map((r, i) =>
-    `[资料${i + 1}｜来源：${r.doc.name}｜片段${r.index}]\n${r.text.trim()}`
-  ).join('\n\n---\n\n');
-  return { refs, refName, context };
-}
-
-function buildSystemPrompt(promptText, hasKnowledge) {
-  const knowledgeRules = hasKnowledge ? `
-
-【知识库使用规则】
-1. 本篇文案必须优先调用「课程资料摘录」里的信息来写，尤其是讲次名称、工具名称、方法步骤、案例细节、适用场景和结果描述。
-2. 课程植入不能只写“课程很好/值得学”这类空话，要自然消化资料中的具体内容，让读者感觉课程能解决她眼前的问题。
-3. 至少自然融入 2-4 个来自资料摘录的具体信息；不要输出资料编号，也不要写成生硬引用。
-4. 资料里没有的课程名称、工具、讲次、案例、承诺效果，一律不要编造；资料不足时宁可少植入，也不要假装有。` : `
-
-【资料不足提醒】
-当前课程没有可用资料摘录。请只根据用户提供的素材和提示词写作，不要编造课程讲次、工具名称、案例或效果承诺。`;
-  return (promptText || '').trim() + knowledgeRules;
-}
-
-function buildTaskMessage(task, retrieval) {
-  const knowledgeBlock = retrieval.context
-    ? `【本篇已检索到的课程资料摘录】\n${retrieval.context}`
-    : '【本篇已检索到的课程资料摘录】\n未上传或未匹配到可用资料。';
-
-  return `【本篇创作任务】
-标题：${task.title}
-
-素材：${task.material}
-
-${knowledgeBlock}
-
-请严格按专属提示词完成文案。写作时先抓住素材里的真实痛点，再把上方资料摘录中的课程内容转成有转化力的表达。`;
-}
-
-function makeRefSummary(retrieval) {
-  return (retrieval.refs || []).map(r => ({
-    source: r.doc.name,
-    index: r.index,
-    score: Math.round(r.score || 0),
-    excerpt: cleanDocText(r.text).slice(0, 180),
-  }));
-}
-
-function normalizeForAudit(text) {
-  return (text || '').replace(/[《》「」"'\s，。？！、：；,.!?;:]/g, '').toLowerCase();
-}
-
-function extractKnowledgeAuditTerms(retrieval) {
-  const context = retrieval.context || '';
-  const raw = context.match(/《[^》]{2,24}》|「[^」]{2,24}」|[\u4e00-\u9fffA-Za-z0-9]{4,16}/g) || [];
-  const stop = ['本篇已检索到的课程资料摘录','来源','片段','妈妈','孩子','课程','资料','这个','那个','他们','我们','自己','因为','所以','但是','如果','就是','可以','需要','时候'];
-  const seen = new Set();
-  const terms = [];
-  for (const item of raw) {
-    const term = item.replace(/[《》「」]/g, '').trim();
-    if (term.length < 4 || stop.some(s => term.includes(s))) continue;
-    const key = normalizeForAudit(term);
-    if (!key || seen.has(key)) continue;
-    seen.add(key);
-    terms.push(term);
-    if (terms.length >= 24) break;
-  }
-  return terms;
-}
-
-function runConversionAudit(text, task, retrieval) {
-  const norm = normalizeForAudit(text);
-  const knowledgeTerms = extractKnowledgeAuditTerms(retrieval);
-  const matchedTerms = knowledgeTerms.filter(t => norm.includes(normalizeForAudit(t)));
-  const taskTerms = extractSearchTerms(task.title, task.material, '').slice(0, 18);
-  const matchedTaskTerms = taskTerms.filter(t => norm.includes(normalizeForAudit(t.term)));
-  const hasCta = /课程|报名|私信|领取|加入|咨询|学习|训练营|陪跑|跟着|入口|主页|评论|链接|适合|想学/.test(text || '');
-  const hasCourseDetail = /第[一二三四五六七八九十0-9]+|讲|模块|工具|方法|步骤|练习|案例|清单|模板|话术|课/.test(text || '');
-  const hasPain = /累|崩溃|焦虑|内疚|心疼|不知道|反复|每天|晚上|哭|怕|担心|困住|拉扯|失控|敏感/.test(text || '');
-
-  const items = [
-    { label: '资料植入', pass: retrieval.refs.length === 0 || matchedTerms.length >= 2, detail: matchedTerms.slice(0, 4).join('、') },
-    { label: '素材贴合', pass: matchedTaskTerms.length >= 2, detail: matchedTaskTerms.slice(0, 4).map(t => t.term).join('、') },
-    { label: '课程具体点', pass: hasCourseDetail, detail: '' },
-    { label: '读者痛点', pass: hasPain, detail: '' },
-    { label: '转化动作', pass: hasCta, detail: '' },
-  ];
-  return {
-    score: items.filter(i => i.pass).length,
-    total: items.length,
-    items,
-  };
-}
-
-async function fetchWithTimeout(url, options, timeoutMs) {
-  activeAbortController = new AbortController();
-  let timedOut = false;
-  const timeout = setTimeout(() => {
-    timedOut = true;
-    activeAbortController.abort();
-  }, timeoutMs);
-  try {
-    return await fetch(url, { ...options, signal: activeAbortController.signal });
-  } catch (err) {
-    if (timedOut) throw new Error('请求超过 120 秒未响应，已自动停止。');
-    throw err;
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-async function readStreamChunk(reader, timeoutMs = STREAM_IDLE_TIMEOUT_MS, errorMessage = '模型超过 60 秒没有返回正文，已自动停止。请换一个模型或稍后重试。') {
-  if (timeoutMs <= 0) {
-    activeAbortController?.abort();
-    throw new Error(errorMessage);
-  }
-  let timeoutId = null;
-  const readPromise = reader.read().then(
-    value => ({ type: 'read', value }),
-    error => ({ type: 'error', error })
-  );
-  const timeoutPromise = new Promise(resolve => {
-    timeoutId = setTimeout(() => resolve({ type: 'timeout' }), timeoutMs);
-  });
-  const outcome = await Promise.race([readPromise, timeoutPromise]);
-  clearTimeout(timeoutId);
-  if (outcome.type === 'timeout') {
-    activeAbortController?.abort();
-    throw new Error(errorMessage);
-  }
-  if (outcome.type === 'error') throw outcome.error;
-  return outcome.value;
-}
-
-function buildProviderRequest(apiKey, promptText, retrieval, turns) {
-  const provider = getProvider();
-  const model = getModel();
-  const config = PROVIDER_CONFIG[provider] || PROVIDER_CONFIG.aicanapi;
-  const protocol = getEffectiveProtocol(provider, model, config);
-  const systemText = buildSystemPrompt(promptText, retrieval.refs.length > 0);
-
-  if (protocol === 'gemini') {
-    const shouldStream = config.stream !== false;
-    const contents = turns.map((turn, i) => ({
-      role: turn.role === 'assistant' ? 'model' : 'user',
-      parts: [{
-        text: (i === 0 ? `${systemText}\n\n` : '') + turn.content,
-      }],
-    }));
-    return {
-      provider,
-      protocol,
-      stream: shouldStream,
-      url: getProviderEndpoint(provider, protocol).replace('{model}', encodeURIComponent(model)),
-      options: {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': apiKey,
-        },
-        body: JSON.stringify({
-          contents,
-          generationConfig: { maxOutputTokens: 4096 },
-        }),
-      },
-    };
-  }
-
-  if (protocol === 'openai') {
-    const endpoint = getProviderEndpoint(provider, protocol);
-    if (!endpoint) throw new Error('请先填写自定义接口地址');
-    const shouldStream = config.stream !== false;
-    const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    };
-    if (provider === 'openrouter') {
-      headers['HTTP-Referer'] = (typeof location !== 'undefined' && location.origin && location.origin !== 'null') ? location.origin : 'https://momcare2024.github.io';
-      headers['X-Title'] = 'Lanma Copy Generator';
+  if (docs.length === 0) return null;
+  const words = (title + ' ' + material).toLowerCase()
+    .split(/[\s，。？！、：；""''（）【】\n]+/).filter(w => w.length >= 2);
+  let best = null, bestScore = -1;
+  for (const doc of docs) {
+    const text = doc.content.toLowerCase();
+    let score = 0;
+    for (const w of words) {
+      score += text.split(w).length - 1;
+      if (doc.name.toLowerCase().includes(w)) score += 8;
     }
-    return {
-      provider,
-      protocol,
-      stream: shouldStream,
-      url: endpoint,
-      options: {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          model,
-          max_tokens: 4096,
-          stream: shouldStream,
-          messages: [
-            { role: 'system', content: systemText },
-            ...turns,
-          ],
-        }),
-      },
-    };
+    if (score > bestScore) { bestScore = score; best = doc; }
   }
-
-  const shouldStream = config.stream !== false;
-  return {
-    provider,
-    protocol,
-    stream: shouldStream,
-    url: getProviderEndpoint(provider, protocol),
-    options: {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: 4096,
-        stream: shouldStream,
-        system: systemText,
-        messages: turns,
-      }),
-    },
-  };
-}
-
-function extractProviderChunk(provider, parsed) {
-  if (provider === 'gemini') {
-    const parts = parsed.candidates?.[0]?.content?.parts || [];
-    return parts.map(p => p.text || '').join('');
-  }
-  return parsed.delta?.text || parsed.delta?.content || parsed.choices?.[0]?.delta?.content || '';
-}
-
-function extractProviderFullText(provider, parsed) {
-  if (!parsed || typeof parsed !== 'object') return '';
-  if (Array.isArray(parsed)) {
-    return parsed.map(item => extractProviderFullText(provider, item)).join('');
-  }
-  if (provider === 'gemini') {
-    const parts = parsed.candidates?.[0]?.content?.parts || [];
-    const text = parts.map(p => p.text || '').join('');
-    if (text) return text;
-  }
-  const content = parsed.content;
-  if (Array.isArray(content)) {
-    return content.map(part => typeof part === 'string' ? part : (part.text || '')).join('');
-  }
-  if (typeof content === 'string') return content;
-  return parsed.choices?.[0]?.message?.content
-    || parsed.choices?.[0]?.text
-    || parsed.message?.content
-    || parsed.output_text
-    || parsed.text
-    || parsed.completion
-    || '';
-}
-
-function extractTextFromPayload(provider, payload, preferChunk = true) {
-  try {
-    const parsed = JSON.parse(payload);
-    if (Array.isArray(parsed)) {
-      return parsed.map(item => (
-        preferChunk
-          ? (extractProviderChunk(provider, item) || extractProviderFullText(provider, item))
-          : (extractProviderFullText(provider, item) || extractProviderChunk(provider, item))
-      )).join('');
-    }
-    return preferChunk
-      ? (extractProviderChunk(provider, parsed) || extractProviderFullText(provider, parsed))
-      : (extractProviderFullText(provider, parsed) || extractProviderChunk(provider, parsed));
-  } catch(e) {
-    return '';
-  }
-}
-
-function extractProviderPayloadError(payload) {
-  try {
-    const parsed = JSON.parse(payload);
-    const items = Array.isArray(parsed) ? parsed : [parsed];
-    for (const item of items) {
-      if (!item || typeof item !== 'object') continue;
-      const err = item.error || item.errors?.[0];
-      if (typeof err === 'string') return err;
-      if (err?.message) return err.message;
-      if (item.type === 'error' && item.message) return item.message;
-    }
-  } catch(e) {}
-  return '';
-}
-
-function getStreamPayload(line) {
-  const trimmed = (line || '').trim();
-  if (!trimmed || trimmed.startsWith('event:') || trimmed.startsWith(':')) return '';
-  if (trimmed.startsWith('data:')) return trimmed.slice(5).trim();
-  if (trimmed.startsWith('{') || trimmed.startsWith('[')) return trimmed;
-  return '';
-}
-
-function extractFallbackBodyText(provider, rawBody) {
-  const body = (rawBody || '').trim();
-  if (!body) return '';
-  const direct = (body.startsWith('{') || body.startsWith('['))
-    ? extractTextFromPayload(provider, body, false)
-    : '';
-  if (direct) return direct;
-  return body
-    .split(/\r?\n/)
-    .map(getStreamPayload)
-    .filter(data => data && data !== '[DONE]')
-    .map(data => extractTextFromPayload(provider, data, false))
-    .join('');
-}
-
-async function readResponseTextWithTimeout(resp, timeoutMs) {
-  let timeoutId = null;
-  const timeoutPromise = new Promise((_, reject) => {
-    timeoutId = setTimeout(() => {
-      activeAbortController?.abort();
-      reject(new Error('模型生成超过 4 分钟未完成，已自动停止。请稍后重试或换一个模型。'));
-    }, timeoutMs);
-  });
-  try {
-    return await Promise.race([resp.text(), timeoutPromise]);
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-
-async function readProviderText(request, resp, onText) {
-  const contentType = resp.headers?.get?.('content-type') || '';
-  if (request.stream === false || !contentType.includes('text/event-stream')) {
-    const rawText = await readResponseTextWithTimeout(resp, GENERATION_TIMEOUT_MS);
-    const text = extractFallbackBodyText(request.provider, rawText);
-    if (text) onText?.(text);
-    return text;
-  }
-  if (!resp.body || !resp.body.getReader) {
-    const rawText = await readResponseTextWithTimeout(resp, GENERATION_TIMEOUT_MS);
-    const text = extractFallbackBodyText(request.provider, rawText);
-    if (text) onText?.(text);
-    return text;
-  }
-
-  const reader = resp.body.getReader();
-  const decoder = new TextDecoder();
-  let pending = '';
-  let rawBody = '';
-  let full = '';
-  let lastVisibleTextAt = Date.now();
-  let visibleTextLength = 0;
-
-  const updateVisibleProgress = () => {
-    const nextLength = (full.match(/\S/g) || []).length;
-    if (nextLength > visibleTextLength) {
-      visibleTextLength = nextLength;
-      lastVisibleTextAt = Date.now();
-      onText?.(full);
-    }
-  };
-
-  const consumePayload = data => {
-    if (!data || data === '[DONE]') return;
-    const payloadError = extractProviderPayloadError(data);
-    if (payloadError) throw new Error(payloadError);
-    const chunk = extractTextFromPayload(request.provider, data, true);
-    if (!chunk) return;
-    full += chunk;
-    updateVisibleProgress();
-  };
-
-  while (true) {
-    const remainingMs = STREAM_IDLE_TIMEOUT_MS - (Date.now() - lastVisibleTextAt);
-    const { done, value } = await readStreamChunk(
-      reader,
-      remainingMs,
-      '模型超过 60 秒没有返回有效文字，已自动停止。请检查 Claude API 密钥、模型，或稍后重试。'
-    );
-    if (done) break;
-    const decoded = decoder.decode(value, { stream: true });
-    rawBody += decoded;
-    pending += decoded;
-    const lines = pending.split(/\r?\n/);
-    pending = lines.pop() || '';
-    lines.forEach(line => consumePayload(getStreamPayload(line)));
-  }
-
-  const tail = decoder.decode();
-  if (tail) {
-    rawBody += tail;
-    pending += tail;
-  }
-  consumePayload(getStreamPayload(pending));
-
-  if (!full) {
-    const fallback = extractFallbackBodyText(request.provider, rawBody);
-    if (fallback) {
-      full = fallback;
-      updateVisibleProgress();
-    }
-  }
-  return full;
-}
-
-async function readProviderError(resp) {
-  const err = await resp.json().catch(() => ({}));
-  return err.error?.message || err.message || ('HTTP ' + resp.status);
-}
-
-function stopGeneration() {
-  generationStopRequested = true;
-  activeAbortController?.abort();
-  const btn = document.getElementById('genBtn');
-  btn.textContent = '正在停止…';
-  document.getElementById('stopBtn')?.classList.remove('show');
-}
-
-function setGeneratingUi(active) {
-  const btn = document.getElementById('genBtn');
-  const stopBtn = document.getElementById('stopBtn');
-  btn.disabled = active;
-  stopBtn?.classList.toggle('show', active);
-  if (!active) btn.textContent = '开始生成文章';
+  return best || docs[0];
 }
 
 // ============================================================
@@ -2345,8 +1361,7 @@ async function generateAll() {
 
   const c = getCurrentCourse();
   if (!c) { alert('请先选择或创建课程'); return; }
-  const promptText = persistPromptFromTextarea(false);
-  if (!promptText.trim()) { alert('请先填写课程专属提示词'); return; }
+  if (!c.prompt.trim()) { alert('请先填写并保存课程专属提示词'); return; }
 
   c.tasks.forEach(t => syncTask(t.id));
   const valid = c.tasks.filter(t => t.title.trim() && t.material.trim() && t.status === 'wait');
@@ -2356,115 +1371,117 @@ async function generateAll() {
   if (docs.length === 0 && !confirm('还未上传课程文档，课程植入内容无法保证准确。\n确认继续？')) return;
 
   isGenerating = true;
-  generationStopRequested = false;
   const btn = document.getElementById('genBtn');
-  setGeneratingUi(true);
+  btn.disabled = true;
   renderCourseTabs();
 
-  try {
-    for (let i = 0; i < valid.length; i++) {
-      if (generationStopRequested) break;
-      btn.textContent = `生成中 (${i + 1}/${valid.length})…`;
-      await generateOne(valid[i], apiKey, promptText);
-    }
-  } finally {
-    isGenerating = false;
-    generationStopRequested = false;
-    setGeneratingUi(false);
-    renderCourseTabs();
-    updateExportBtn();
+  for (let i = 0; i < valid.length; i++) {
+    btn.textContent = `生成中 (${i + 1}/${valid.length})…`;
+    await generateOne(valid[i], apiKey, c.prompt);
   }
+
+  isGenerating = false;
+  btn.disabled = false;
+  btn.textContent = '开始生成文章';
+  renderCourseTabs();
+  updateExportBtn();
 }
 
 async function generateOne(task, apiKey, promptText) {
-  const retrieval = retrieveKnowledge(task.title, task.material, promptText);
-  task.refName = retrieval.refName;
-  task.refSummary = makeRefSummary(retrieval);
-  task.audit = null;
+  const doc = findRelevantDoc(task.title, task.material);
+  task.refName = doc ? doc.name : '';
+  const courseCtx = doc
+    ? `\n\n【课程资料参考 - 来源：${doc.name}】\n${doc.content.slice(0, 3500)}\n\n⚠️ 所有课程植入内容（讲次名称、工具名称、案例细节）必须来自上方资料，不得编造。`
+    : '';
 
   setTaskStatus(task.id, 'run');
   setActiveView(task.id);  // 自动切换到当前生成任务
 
   try {
-    const request = buildProviderRequest(apiKey, promptText, retrieval, [
-      { role: 'user', content: buildTaskMessage(task, retrieval) },
-    ]);
-    const resp = await fetchWithTimeout(request.url, request.options, GENERATION_TIMEOUT_MS);
+    const resp = await fetch('https://ent.aicanapi.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'Authorization': `Bearer ${apiKey}`,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: getModel(),
+        max_tokens: 4096,
+        stream: true,
+        system: promptText + courseCtx,
+        messages: [{ role: 'user', content: `标题：${task.title}\n\n素材：${task.material}` }]
+      })
+    });
 
     if (!resp.ok) {
-      throw new Error(await readProviderError(resp));
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.error?.message || 'HTTP ' + resp.status);
     }
 
-    // 准备展示区：Claude API 默认等待完整正文返回，其他流式接口收到第一段正文后展示。
+    // 准备流式展示区
     if (activeViewId === task.id) {
-      const loading = document.getElementById('singleLoading');
-      if (loading) {
-        loading.style.display = 'flex';
-        loading.innerHTML = request.stream === false
-          ? '<div class="spinner"></div><span style="font-size:13px">Claude API 正在生成完整正文，请稍候…</span>'
-          : '<div class="spinner"></div><span style="font-size:13px">已连接模型，等待正文返回…</span>';
-      }
+      document.getElementById('singleLoading').style.display = 'none';
       const textEl = document.getElementById('singleText');
-      if (textEl) {
-        textEl.style.display = 'none';
-        textEl.classList.add('streaming');
-        textEl.innerHTML = '';
-      }
+      textEl.style.display = 'block';
+      textEl.classList.add('streaming');
+      textEl.innerHTML = '';
     }
 
     const cursor = document.createElement('span');
     cursor.className = 'cursor';
-    let hasShownFirstChunk = false;
 
-    const full = await readProviderText(request, resp, nextFull => {
-      if (!nextFull.trim()) return;
-      // 只在当前查看的任务上更新 DOM
-      if (activeViewId === task.id) {
-        const loading = document.getElementById('singleLoading');
-        const textEl = document.getElementById('singleText');
-        if (loading && !hasShownFirstChunk) loading.style.display = 'none';
-        if (textEl) {
-          if (!hasShownFirstChunk) {
-            textEl.style.display = 'block';
-            textEl.classList.add('streaming');
-            textEl.innerHTML = '';
-            hasShownFirstChunk = true;
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let full = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      for (const line of decoder.decode(value, { stream: true }).split('\n')) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if (!data || data === '[DONE]') continue;
+        try {
+          const parsed = JSON.parse(data);
+          const chunk = parsed.delta?.text || parsed.choices?.[0]?.delta?.content || '';
+          if (chunk) {
+            full += chunk;
+            // 只在当前查看的任务上更新 DOM
+            if (activeViewId === task.id) {
+              const textEl = document.getElementById('singleText');
+              if (textEl) {
+                const escaped = full.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                textEl.innerHTML = escaped;
+                textEl.appendChild(cursor);
+                document.getElementById('singleBody').scrollTop = 999999;
+              }
+            }
           }
-          const escaped = nextFull.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-          textEl.innerHTML = escaped;
-          textEl.appendChild(cursor);
-          document.getElementById('singleBody').scrollTop = 999999;
-        }
+        } catch(e) {}
       }
-    });
+    }
 
     cursor.remove();
-    if (!full.trim()) throw new Error('未收到任何有效内容，请检查 API Key、令牌分组和模型名称是否正确');
+    if (!full) throw new Error('未收到任何内容，请检查 API Key 和模型名称是否正确');
 
-    task.result = full.trim();
-    task.truncated = isLikelyTruncated(task.result);
-    task.audit = runConversionAudit(task.result, task, retrieval);
+    task.result = full;
+    task.truncated = isLikelyTruncated(full);
     setTaskStatus(task.id, 'done');
     saveToStorage(); // 每篇完成立即持久化，防止刷新丢失
 
     // 渲染 Markdown（无论是否是当前查看，都存好；若是当前查看则立即渲染）
     if (activeViewId === task.id) {
       const textEl = document.getElementById('singleText');
-      if (textEl) { textEl.classList.remove('streaming'); textEl.innerHTML = renderMarkdownSafe(task.result); }
+      if (textEl) { textEl.classList.remove('streaming'); textEl.innerHTML = marked.parse(full); }
     }
     renderRightPanel(); // 更新 nav pills
 
   } catch(err) {
-    if (generationStopRequested || err.name === 'AbortError') {
-      task.errorMsg = '已停止生成，可稍后重新生成';
-      setTaskStatus(task.id, 'wait');
-    } else {
-      task.errorMsg = err.message || '请求失败';
-      setTaskStatus(task.id, 'error');
-    }
+    task.errorMsg = err.message || '请求失败';
+    setTaskStatus(task.id, 'error');
     renderRightPanel();
-  } finally {
-    activeAbortController = null;
   }
 }
 
@@ -2474,25 +1491,19 @@ async function retryTask(taskId) {
   if (!/^[\x00-\xFF]*$/.test(apiKey)) { alert('API Key 含有非法字符（如中文），请检查后重新粘贴正确的 API Key'); return; }
   const c = getCurrentCourse();
   if (!c) return;
-  const promptText = persistPromptFromTextarea(false);
   const task = c.tasks.find(t => t.id === taskId);
   if (!task) return;
   task.status = 'wait';
   task.errorMsg = '';
-  task.audit = null;
   setTaskStatus(taskId, 'wait');
   isGenerating = true;
-  generationStopRequested = false;
-  setGeneratingUi(true);
-  try {
-    await generateOne(task, apiKey, promptText);
-  } finally {
-    isGenerating = false;
-    generationStopRequested = false;
-    setGeneratingUi(false);
-    renderCourseTabs();
-    updateExportBtn();
-  }
+  document.getElementById('genBtn').disabled = true;
+  await generateOne(task, apiKey, c.prompt);
+  isGenerating = false;
+  document.getElementById('genBtn').disabled = false;
+  document.getElementById('genBtn').textContent = '开始生成文章';
+  renderCourseTabs();
+  updateExportBtn();
 }
 
 // 检测文章是否可能未写完（末尾没有合法结束标点）
@@ -2511,19 +1522,18 @@ async function continueTask() {
   if (!/^[\x00-\xFF]*$/.test(apiKey)) { alert('API Key 含有非法字符（如中文），请检查后重新粘贴正确的 API Key'); return; }
   const c = getCurrentCourse();
   if (!c) return;
-  const promptText = persistPromptFromTextarea(false);
   const task = c.tasks.find(t => t.id === activeViewId);
   if (!task || !task.result) return;
 
   isGenerating = true;
-  generationStopRequested = false;
-  setGeneratingUi(true);
+  document.getElementById('genBtn').disabled = true;
   document.getElementById('continueBtn').disabled = true;
   document.getElementById('truncatedBadge').style.display = 'none';
 
-  const retrieval = retrieveKnowledge(task.title, task.material, promptText);
-  task.refName = retrieval.refName;
-  task.refSummary = makeRefSummary(retrieval);
+  const doc = findRelevantDoc(task.title, task.material);
+  const courseCtx = doc
+    ? `\n\n【课程资料参考 - 来源：${doc.name}】\n${doc.content.slice(0, 3500)}\n\n⚠️ 所有课程植入内容必须来自上方资料，不得编造。`
+    : '';
 
   setTaskStatus(task.id, 'run');
 
@@ -2538,58 +1548,82 @@ async function continueTask() {
   }
 
   try {
-    const request = buildProviderRequest(apiKey, promptText, retrieval, [
-      { role: 'user', content: buildTaskMessage(task, retrieval) },
-      { role: 'assistant', content: task.result },
-      { role: 'user', content: '请继续写完上面未完成的内容，从中断处直接接续，不要重复已有内容；继续遵守知识库使用规则，不要新增资料里没有的课程细节。' }
-    ]);
-    const resp = await fetchWithTimeout(request.url, request.options, GENERATION_TIMEOUT_MS);
+    const resp = await fetch('https://ent.aicanapi.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'Authorization': `Bearer ${apiKey}`,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: getModel(),
+        max_tokens: 4096,
+        stream: true,
+        system: c.prompt + courseCtx,
+        messages: [
+          { role: 'user', content: `标题：${task.title}\n\n素材：${task.material}` },
+          { role: 'assistant', content: task.result },
+          { role: 'user', content: '请继续写完上面未完成的内容，从中断处直接接续，不要重复已有内容。' }
+        ]
+      })
+    });
 
     if (!resp.ok) {
-      throw new Error(await readProviderError(resp));
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.error?.message || 'HTTP ' + resp.status);
     }
 
     const cursor = document.createElement('span');
     cursor.className = 'cursor';
-    const extra = await readProviderText(request, resp, nextExtra => {
-      if (!nextExtra.trim()) return;
-      if (activeViewId === task.id && textEl) {
-        const combined = task.result + nextExtra;
-        const escaped = combined.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-        textEl.innerHTML = escaped;
-        textEl.appendChild(cursor);
-        document.getElementById('singleBody').scrollTop = 999999;
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let extra = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      for (const line of decoder.decode(value, { stream: true }).split('\n')) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if (!data || data === '[DONE]') continue;
+        try {
+          const parsed = JSON.parse(data);
+          const chunk = parsed.delta?.text || parsed.choices?.[0]?.delta?.content || '';
+          if (chunk) {
+            extra += chunk;
+            if (activeViewId === task.id && textEl) {
+              const combined = task.result + extra;
+              const escaped = combined.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+              textEl.innerHTML = escaped;
+              textEl.appendChild(cursor);
+              document.getElementById('singleBody').scrollTop = 999999;
+            }
+          }
+        } catch(e) {}
       }
-    });
+    }
 
     cursor.remove();
-    if (!extra.trim()) throw new Error('未收到有效续写内容');
+    if (!extra) throw new Error('未收到续写内容');
 
-    task.result = task.result + extra.trimEnd();
+    task.result = task.result + extra;
     task.truncated = isLikelyTruncated(task.result);
-    task.audit = runConversionAudit(task.result, task, retrieval);
     setTaskStatus(task.id, 'done');
     if (activeViewId === task.id && textEl) {
       textEl.classList.remove('streaming');
-      textEl.innerHTML = renderMarkdownSafe(task.result);
+      textEl.innerHTML = marked.parse(task.result);
     }
     saveToStorage();
     renderRightPanel();
 
   } catch(err) {
-    if (generationStopRequested || err.name === 'AbortError') {
-      task.errorMsg = '已停止续写，已保留原文';
-      setTaskStatus(task.id, 'done');
-    } else {
-      task.errorMsg = err.message || '续写失败';
-      setTaskStatus(task.id, 'error');
-    }
+    task.errorMsg = err.message || '续写失败';
+    setTaskStatus(task.id, 'error');
     renderRightPanel();
   } finally {
-    activeAbortController = null;
     isGenerating = false;
-    generationStopRequested = false;
-    setGeneratingUi(false);
+    document.getElementById('genBtn').disabled = false;
     document.getElementById('continueBtn').disabled = false;
     renderCourseTabs();
     updateExportBtn();
@@ -2712,8 +1746,7 @@ function exportBackup() {
       tasks: c.tasks.map(t => ({
         id: t.id, title: t.title, material: t.material,
         status: t.status, result: t.result || '',
-        refName: t.refName || '', refSummary: t.refSummary || [],
-        audit: t.audit || null, truncated: t.truncated || false,
+        refName: t.refName || '', truncated: t.truncated || false,
       }))
     })),
     courseDocs: (() => {
@@ -2751,8 +1784,6 @@ function importBackup(e) {
           status: t.status === 'done' ? 'done' : 'wait',
           result: t.result || '',
           refName: t.refName || '',
-          refSummary: Array.isArray(t.refSummary) ? t.refSummary : [],
-          audit: t.audit || null,
           errorMsg: '',
           truncated: t.truncated || false,
         }))
@@ -2787,266 +1818,36 @@ function importBackup(e) {
 // ============================================================
 const LS_APIKEY = 'lanma_apikey';
 const LS_MODEL  = 'lanma_model';
-const LS_PROVIDER = 'lanma_provider';
-const LS_ENDPOINT = 'lanma_endpoint';
-const LS_CUSTOM_MODEL = 'lanma_custom_model';
-const LS_API_ADVANCED = 'lanma_api_advanced';
 
 function onApiKeyInput() {
   const key = document.getElementById('apiKey').value.trim();
-  const storageKey = getApiKeyStorageKey();
   if (key) {
-    localStorage.setItem(storageKey, key);
+    localStorage.setItem(LS_APIKEY, key);
     document.getElementById('apiSavedBadge').classList.add('show');
   } else {
-    localStorage.removeItem(storageKey);
+    localStorage.removeItem(LS_APIKEY);
     document.getElementById('apiSavedBadge').classList.remove('show');
   }
 }
 
-function clearApiKey() {
-  document.getElementById('apiKey').value = '';
-  localStorage.removeItem(getApiKeyStorageKey());
-  document.getElementById('apiSavedBadge').classList.remove('show');
-}
-
-function getProvider() {
-  return document.getElementById('providerSelect')?.value || 'aicanapi';
-}
-
-function inferProtocolFromModel(model) {
-  const value = (model || '').toLowerCase();
-  if (value.startsWith('claude') || value.includes('/claude')) return 'anthropic';
-  return 'openai';
-}
-
-function getEffectiveProtocol(provider, model, config = PROVIDER_CONFIG[provider] || PROVIDER_CONFIG.aicanapi) {
-  if (config.protocol === 'auto') return inferProtocolFromModel(model);
-  return config.protocol;
-}
-
-function getDefaultEndpoint(provider, protocol) {
-  const config = PROVIDER_CONFIG[provider] || PROVIDER_CONFIG.aicanapi;
-  if (config.endpoints) return config.endpoints[protocol] || config.endpoint || '';
-  return config.endpoint || '';
-}
-
-function getSelectedModelForEndpoint() {
-  const modelSelect = document.getElementById('modelSelect');
-  const customInput = document.getElementById('customModelInput');
-  const selected = modelSelect?.value || '';
-  if (selected === CUSTOM_MODEL_VALUE) return customInput?.value.trim() || selected;
-  return selected;
-}
-
-function getApiKeyStorageKey(provider = getProvider()) {
-  return provider === 'claude' ? LS_APIKEY : `${LS_APIKEY}_${provider}`;
-}
-
-function getModelStorageKey(provider = getProvider()) {
-  return provider === 'claude' ? LS_MODEL : `${LS_MODEL}_${provider}`;
-}
-
-function getEndpointStorageKey(provider = getProvider(), protocol = null) {
-  const suffix = protocol ? `_${protocol}` : '';
-  return `${LS_ENDPOINT}_${provider}${suffix}`;
-}
-
-function getCustomModelStorageKey(provider = getProvider()) {
-  return `${LS_CUSTOM_MODEL}_${provider}`;
-}
-
-function onProviderChange() {
-  const provider = getProvider();
-  localStorage.setItem(LS_PROVIDER, provider);
-  if (provider === 'custom') localStorage.setItem(LS_API_ADVANCED, '1');
-  updateProviderUi();
-}
-
-function isAdvancedApiOpen() {
-  return localStorage.getItem(LS_API_ADVANCED) === '1';
-}
-
-function toggleAdvancedApi() {
-  const nextOpen = !isAdvancedApiOpen();
-  localStorage.setItem(LS_API_ADVANCED, nextOpen ? '1' : '0');
-  updateProviderUi();
-}
-
-function updateAdvancedApiVisibility() {
-  const open = isAdvancedApiOpen();
-  const panel = document.getElementById('advancedApiPanel');
-  const toggle = document.getElementById('advancedApiToggle');
-  panel?.classList.toggle('show', open);
-  if (toggle) toggle.textContent = open ? '收起地址' : '接口地址';
-}
-
-function updateApiHelpText(provider, model) {
-  const help = document.getElementById('apiHelpText');
-  if (!help) return;
-  if (provider === 'aicanapi') {
-    const protocol = getEffectiveProtocol(provider, model || getSelectedModelForEndpoint());
-    help.textContent = protocol === 'anthropic'
-      ? '代理站用这里：API KEY 填 ent.aicanapi.com 的 sk-...；当前 Claude 模型会走 /v1/messages。要换 Gemini，只改右侧模型下拉。'
-      : '代理站用这里：API KEY 填 ent.aicanapi.com 的 sk-...；当前 Gemini/GPT 模型会走 /v1/chat/completions，不要选 Gemini 官方。';
-    return;
-  }
-  if (provider === 'claude') {
-    help.textContent = '只有官方 Claude/Anthropic 或完全兼容的密钥才选这里；平时用默认 Claude API 即可。';
-    return;
-  }
-  if (provider === 'gemini') {
-    help.textContent = '这里只给 Google AI Studio 的官方 Gemini Key 使用；ent.aicanapi.com 的代理 Key 请切回 AICanAPI 代理。';
-    return;
-  }
-  if (provider === 'custom') {
-    help.textContent = '自定义接口按 OpenAI 兼容格式发送；需要填写完整接口地址和模型名。';
-    return;
-  }
-  help.textContent = '这里填写对应平台的官方或兼容 API Key；平时用 Claude API 的话不用打开高级设置。';
-}
-
-function updateProviderUi() {
-  const provider = getProvider();
-  const config = PROVIDER_CONFIG[provider] || PROVIDER_CONFIG.aicanapi;
-  const modelSelect = document.getElementById('modelSelect');
-  const apiInput = document.getElementById('apiKey');
-  const customModelInput = document.getElementById('customModelInput');
-  const endpointInput = document.getElementById('apiEndpointInput');
-  const endpointLabel = document.getElementById('endpointLabel');
-  modelSelect.innerHTML = '';
-  for (const [value, label] of config.models) {
-    const opt = document.createElement('option');
-    opt.value = value;
-    opt.textContent = label;
-    modelSelect.appendChild(opt);
-  }
-
-  apiInput.placeholder = config.placeholder;
-  const savedKey = localStorage.getItem(getApiKeyStorageKey(provider));
-  apiInput.value = savedKey || '';
-  document.getElementById('apiSavedBadge').classList.toggle('show', !!savedKey);
-
-  const savedModel = localStorage.getItem(getModelStorageKey(provider));
-  const customModel = localStorage.getItem(getCustomModelStorageKey(provider)) || '';
-  customModelInput.value = customModel;
-  if (provider === 'custom') {
-    modelSelect.value = CUSTOM_MODEL_VALUE;
-  } else if (savedModel && [...modelSelect.options].some(o => o.value === savedModel)) {
-    modelSelect.value = savedModel;
-  } else if (savedModel) {
-    modelSelect.value = CUSTOM_MODEL_VALUE;
-    customModelInput.value = savedModel;
-  } else {
-    modelSelect.value = config.models[0][0];
-    localStorage.setItem(getModelStorageKey(provider), modelSelect.value);
-  }
-  if (customModel && modelSelect.value === CUSTOM_MODEL_VALUE) {
-    customModelInput.value = customModel;
-  } else if (modelSelect.value !== CUSTOM_MODEL_VALUE) {
-    customModelInput.value = '';
-  }
-
-  const showCustomModel = modelSelect.value === CUSTOM_MODEL_VALUE;
-  customModelInput.classList.toggle('show', showCustomModel);
-  customModelInput.disabled = !showCustomModel;
-
-  const endpointProtocol = getEffectiveProtocol(provider, getSelectedModelForEndpoint() || config.models[0][0], config);
-  const showEndpoint = isAdvancedApiOpen() && !!config.endpointEditable;
-  endpointInput.classList.toggle('show', showEndpoint);
-  endpointLabel.classList.toggle('show', showEndpoint);
-  endpointInput.disabled = !showEndpoint;
-  let savedEndpoint = localStorage.getItem(getEndpointStorageKey(provider, endpointProtocol));
-  const legacyEndpoint = localStorage.getItem(getEndpointStorageKey(provider));
-  if (!savedEndpoint && provider !== 'aicanapi' && legacyEndpoint) {
-    savedEndpoint = legacyEndpoint;
-  }
-  if (provider === 'aicanapi' && savedEndpoint && savedEndpoint.includes('aicanapi.com') && !savedEndpoint.includes('ent.aicanapi.com')) {
-    savedEndpoint = getDefaultEndpoint(provider, endpointProtocol);
-    localStorage.setItem(getEndpointStorageKey(provider, endpointProtocol), savedEndpoint);
-  }
-  endpointInput.value = savedEndpoint || getDefaultEndpoint(provider, endpointProtocol);
-  updateAdvancedApiVisibility();
-  updateApiHelpText(provider, getSelectedModelForEndpoint());
-}
-
 function onModelChange() {
-  const selected = document.getElementById('modelSelect').value;
-  const customInput = document.getElementById('customModelInput');
-  const isCustom = selected === CUSTOM_MODEL_VALUE;
-  customInput.classList.toggle('show', isCustom);
-  customInput.disabled = !isCustom;
-  if (isCustom) {
-    const value = customInput.value.trim();
-    if (value) localStorage.setItem(getCustomModelStorageKey(), value);
-    localStorage.setItem(getModelStorageKey(), value || CUSTOM_MODEL_VALUE);
-  } else {
-    localStorage.setItem(getModelStorageKey(), selected);
-  }
-  updateProviderUi();
-}
-
-function onCustomModelInput() {
-  const value = document.getElementById('customModelInput').value.trim();
-  localStorage.setItem(getCustomModelStorageKey(), value);
-  localStorage.setItem(getModelStorageKey(), value || CUSTOM_MODEL_VALUE);
-  updateProviderUi();
-}
-
-function onEndpointInput() {
-  const provider = getProvider();
-  const config = PROVIDER_CONFIG[provider] || PROVIDER_CONFIG.aicanapi;
-  const protocol = getEffectiveProtocol(provider, getSelectedModelForEndpoint(), config);
-  localStorage.setItem(getEndpointStorageKey(provider, protocol), document.getElementById('apiEndpointInput').value.trim());
+  localStorage.setItem(LS_MODEL, document.getElementById('modelSelect').value);
 }
 
 function getModel() {
-  const selected = document.getElementById('modelSelect').value;
-  if (selected === CUSTOM_MODEL_VALUE) {
-    const value = document.getElementById('customModelInput').value.trim();
-    if (!value) throw new Error('请先填写自定义模型名');
-    return value;
-  }
-  return selected;
-}
-
-function normalizeOpenAIEndpoint(url) {
-  const raw = (url || '').trim().replace(/\/+$/, '');
-  if (!raw) return '';
-  if (/\/chat\/completions$/i.test(raw)) return raw;
-  return raw + '/chat/completions';
-}
-
-function normalizeAnthropicEndpoint(url) {
-  const raw = (url || '').trim().replace(/\/+$/, '');
-  if (!raw) return '';
-  if (/\/v1\/messages$/i.test(raw)) return raw;
-  return raw + '/v1/messages';
-}
-
-function getProviderEndpoint(provider = getProvider(), protocol = null) {
-  const config = PROVIDER_CONFIG[provider] || PROVIDER_CONFIG.aicanapi;
-  const endpointProtocol = protocol || getEffectiveProtocol(provider, getModel(), config);
-  const defaultEndpoint = getDefaultEndpoint(provider, endpointProtocol);
-  if (config.endpointEditable) {
-    const value = document.getElementById('apiEndpointInput').value || defaultEndpoint;
-    return endpointProtocol === 'anthropic'
-      ? normalizeAnthropicEndpoint(value)
-      : normalizeOpenAIEndpoint(value);
-  }
-  if (endpointProtocol === 'anthropic') return normalizeAnthropicEndpoint(defaultEndpoint);
-  if (endpointProtocol === 'openai') return normalizeOpenAIEndpoint(defaultEndpoint);
-  return defaultEndpoint;
+  return document.getElementById('modelSelect').value;
 }
 
 function loadApiKey() {
-  const savedProvider = localStorage.getItem(LS_PROVIDER);
-  if (savedProvider && PROVIDER_CONFIG[savedProvider]) {
-    document.getElementById('providerSelect').value = savedProvider;
-  } else {
-    document.getElementById('providerSelect').value = 'aicanapi';
+  const saved = localStorage.getItem(LS_APIKEY);
+  if (saved) {
+    document.getElementById('apiKey').value = saved;
+    document.getElementById('apiSavedBadge').classList.add('show');
   }
-  updateProviderUi();
+  const savedModel = localStorage.getItem(LS_MODEL);
+  if (savedModel) {
+    document.getElementById('modelSelect').value = savedModel;
+  }
 }
 
 // ============================================================
@@ -3207,7 +2008,7 @@ function confirmBatchImport() {
 
   for (const row of parsedImportRows) {
     taskSeq++;
-    const task = { id: taskSeq, title: row.title, material: row.material, status: 'wait', result: '', refName: '', refSummary: [], audit: null };
+    const task = { id: taskSeq, title: row.title, material: row.material, status: 'wait', result: '', refName: '' };
     c.tasks.push(task);
     document.getElementById('tasksWrap').appendChild(buildTaskCard(task));
   }
