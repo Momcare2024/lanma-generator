@@ -1156,6 +1156,47 @@ function escAttr(s) {
   return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function finalOutputGuard(title) {
+  return [
+    '',
+    '【最终输出硬性规则】',
+    '只输出最终中文正文。禁止输出任何思考过程、写作计划、提纲、结构说明、自我检查、英文说明或英文项目符号。',
+    '正文第一行必须直接写标题原文：' + (title || ''),
+    '如果需要思考，请只在内部完成，不要把思考内容写出来。'
+  ].join('\n');
+}
+
+function normalizeGeneratedArticle(text, title) {
+  let output = (text || '').trim();
+  const cleanTitle = (title || '').trim();
+  if (!output) return output;
+
+  if (cleanTitle) {
+    const exactIndex = output.indexOf(cleanTitle);
+    if (exactIndex > 0) output = output.slice(exactIndex).trimStart();
+
+    const headingIndex = output.indexOf('# ' + cleanTitle);
+    if (headingIndex > 0) output = output.slice(headingIndex).trimStart();
+  }
+
+  const lines = output.split(/\r?\n/);
+  let firstUseful = 0;
+  const junkLine = /^(let me|i will|i'll|structure:?|outline:?|opening\b|first layer|second layer|third layer|ending\b|no citation|natural product|follow the|include talk|start directly|this is about|the upgrade direction|now write|here is|okay|sure|当然|好的)/i;
+  while (firstUseful < lines.length) {
+    const line = lines[firstUseful].trim();
+    if (!line || junkLine.test(line) || /^[-*•]\s+[A-Za-z]/.test(line) || /^\d+\.\s+[A-Za-z]/.test(line)) {
+      firstUseful++;
+      continue;
+    }
+    break;
+  }
+  if (firstUseful > 0 && (!cleanTitle || lines.slice(firstUseful).some(line => line.includes(cleanTitle)))) {
+    output = lines.slice(firstUseful).join('\n').trimStart();
+  }
+
+  return output;
+}
+
 // ============================================================
 // 文件上传
 // ============================================================
@@ -1541,7 +1582,7 @@ async function generateOne(task, apiKey, promptText) {
         model: getModel(),
         max_tokens: 4096,
         stream: true,
-        system: promptText + courseCtx.text,
+        system: promptText + courseCtx.text + finalOutputGuard(task.title),
         messages: [{ role: 'user', content: `标题：${task.title}\n\n素材：${task.material}` }]
       })
     });
@@ -1597,6 +1638,7 @@ async function generateOne(task, apiKey, promptText) {
     cursor.remove();
     if (!full) throw new Error('未收到任何内容，请检查 API Key 和模型名称是否正确');
 
+    full = normalizeGeneratedArticle(full, task.title);
     task.result = full;
     task.truncated = isLikelyTruncated(full);
     setTaskStatus(task.id, 'done');
@@ -1693,11 +1735,11 @@ async function continueTask() {
         model: getModel(),
         max_tokens: 4096,
         stream: true,
-        system: promptText + courseCtx.text,
+        system: promptText + courseCtx.text + finalOutputGuard(task.title),
         messages: [
           { role: 'user', content: `标题：${task.title}\n\n素材：${task.material}` },
           { role: 'assistant', content: task.result },
-          { role: 'user', content: '请继续写完上面未完成的内容，从中断处直接接续，不要重复已有内容。' }
+          { role: 'user', content: '请继续写完上面未完成的内容，从中断处直接接续，不要重复已有内容。只输出最终中文正文的续写内容，禁止输出思考过程、提纲、结构说明或英文。' }
         ]
       })
     });
@@ -1740,6 +1782,7 @@ async function continueTask() {
     cursor.remove();
     if (!extra) throw new Error('未收到续写内容');
 
+    extra = normalizeGeneratedArticle(extra, '');
     task.result = task.result + extra;
     task.truncated = isLikelyTruncated(task.result);
     setTaskStatus(task.id, 'done');
