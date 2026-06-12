@@ -643,7 +643,7 @@ header {
   <!-- API Key（全局） -->
   <div class="api-row" id="apiKeyRow">
     <label>API KEY</label>
-    <input type="password" id="apiKey" placeholder="粘贴 ent.aicanapi.com 后台生成的 sk-... API Key" oninput="onApiKeyInput()">
+    <input type="password" id="apiKey" placeholder="粘贴 vectorengine.ai 后台生成的 sk-... API Key" oninput="onApiKeyInput()">
     <select class="model-select" id="modelSelect" onchange="onModelChange()">
       <option value="claude-haiku-4-5">Haiku · 省钱</option>
       <option value="claude-sonnet-4-6">Sonnet · 精品</option>
@@ -1570,7 +1570,7 @@ async function generateOne(task, apiKey, promptText) {
   setActiveView(task.id);  // 自动切换到当前生成任务
 
   try {
-    const resp = await fetch('https://ent.aicanapi.com/v1/messages', {
+    const resp = await fetch('https://vectorengine.ai/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1723,7 +1723,7 @@ async function continueTask() {
   }
 
   try {
-    const resp = await fetch('https://ent.aicanapi.com/v1/messages', {
+    const resp = await fetch('https://vectorengine.ai/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
