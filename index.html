@@ -51,6 +51,7 @@ header {
 .api-row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
   background: #fff;
   border: 1px solid #ddd5c8;
@@ -71,13 +72,9 @@ header {
   background: #faf7f2;
 }
 .api-row input:focus { border-color: #c0622a; background: #fff; }
-.model-select {
-  border: 1px solid #ddd5c8; border-radius: 7px;
-  padding: 7px 10px; font-size: 12px; font-family: inherit;
-  background: #faf7f2; color: #1a1208; outline: none; cursor: pointer;
-  white-space: nowrap; flex-shrink: 0;
-}
-.model-select:focus { border-color: #c0622a; }
+.api-url-input { min-width: 300px; }
+.api-key-input { min-width: 220px; }
+.model-input { min-width: 180px; max-width: 220px; }
 
 /* 课程Tab栏 */
 .course-tabs-row {
@@ -502,6 +499,7 @@ header {
   .workspace { grid-template-columns: 1fr; }
   header { padding: 12px 16px; }
   .container { padding: 16px 12px; }
+  .api-row input { min-width: 220px; max-width: none; }
 }
 
 /* API Key 已记住标记 */
@@ -640,14 +638,26 @@ header {
 
 <div class="container">
 
-  <!-- API Key（全局） -->
+  <!-- API 配置（全局） -->
   <div class="api-row" id="apiKeyRow">
+    <label>API 地址</label>
+    <input type="url" class="api-url-input" id="apiUrl"
+           value="https://claudecn.ai/v1/messages"
+           placeholder="例如 https://claudecn.ai/v1/messages"
+           oninput="onApiUrlInput()">
     <label>API KEY</label>
-    <input type="password" id="apiKey" placeholder="粘贴 vectorengine.ai 后台生成的 sk-... API Key" oninput="onApiKeyInput()">
-    <select class="model-select" id="modelSelect" onchange="onModelChange()">
+    <input type="password" class="api-key-input" id="apiKey"
+           placeholder="粘贴当前平台的 sk-... API Key"
+           oninput="onApiKeyInput()">
+    <label>模型</label>
+    <input type="text" class="model-input" id="modelInput"
+           list="modelOptions" value="claude-sonnet-4-6"
+           placeholder="输入模型名称" oninput="onModelChange()">
+    <datalist id="modelOptions">
       <option value="claude-haiku-4-5">Haiku · 省钱</option>
       <option value="claude-sonnet-4-6">Sonnet · 精品</option>
-    </select>
+      <option value="claude-opus-4-7">Opus · 高质量</option>
+    </datalist>
     <span class="api-saved-badge" id="apiSavedBadge">🔒 已记住</span>
   </div>
 
@@ -1527,6 +1537,8 @@ function findRelevantDoc(title, material) {
 // 生成
 // ============================================================
 async function generateAll() {
+  if (!getApiUrl()) { alert('请先填写 API 地址'); return; }
+  if (!getModel()) { alert('请先填写模型名称'); return; }
   const apiKey = document.getElementById('apiKey').value.trim();
   if (!apiKey) { alert('请先填写 API Key'); return; }
   if (!/^[\x00-\xFF]*$/.test(apiKey)) { alert('API Key 含有非法字符（如中文），请检查后重新粘贴正确的 API Key'); return; }
@@ -1570,7 +1582,7 @@ async function generateOne(task, apiKey, promptText) {
   setActiveView(task.id);  // 自动切换到当前生成任务
 
   try {
-    const resp = await fetch('https://vectorengine.ai/v1/messages', {
+    const resp = await fetch(getApiUrl(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1659,6 +1671,8 @@ async function generateOne(task, apiKey, promptText) {
 }
 
 async function retryTask(taskId) {
+  if (!getApiUrl()) { alert('请先填写 API 地址'); return; }
+  if (!getModel()) { alert('请先填写模型名称'); return; }
   const apiKey = document.getElementById('apiKey').value.trim();
   if (!apiKey) { alert('请先填写 API Key'); return; }
   if (!/^[\x00-\xFF]*$/.test(apiKey)) { alert('API Key 含有非法字符（如中文），请检查后重新粘贴正确的 API Key'); return; }
@@ -1690,6 +1704,8 @@ function isLikelyTruncated(text) {
 
 // 从断点继续续写
 async function continueTask() {
+  if (!getApiUrl()) { alert('请先填写 API 地址'); return; }
+  if (!getModel()) { alert('请先填写模型名称'); return; }
   const apiKey = document.getElementById('apiKey').value.trim();
   if (!apiKey) { alert('请先填写 API Key'); return; }
   if (!/^[\x00-\xFF]*$/.test(apiKey)) { alert('API Key 含有非法字符（如中文），请检查后重新粘贴正确的 API Key'); return; }
@@ -1723,7 +1739,7 @@ async function continueTask() {
   }
 
   try {
-    const resp = await fetch('https://vectorengine.ai/v1/messages', {
+    const resp = await fetch(getApiUrl(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1990,10 +2006,20 @@ function importBackup(e) {
   };
   reader.readAsText(file, 'utf-8');
 }
-// API Key 持久化
+// API 配置持久化
 // ============================================================
-const LS_APIKEY = 'lanma_apikey_vectorengine';
-const LS_MODEL  = 'lanma_model';
+const DEFAULT_API_URL = 'https://claudecn.ai/v1/messages';
+const LEGACY_VECTOR_URL = 'https://vectorengine.ai/v1/messages';
+const LEGACY_APIKEY = 'lanma_apikey_vectorengine';
+const LS_API_URL = 'lanma_api_url';
+const LS_APIKEY  = 'lanma_apikey';
+const LS_MODEL   = 'lanma_model';
+
+function onApiUrlInput() {
+  const url = getApiUrl();
+  if (url) localStorage.setItem(LS_API_URL, url);
+  else localStorage.removeItem(LS_API_URL);
+}
 
 function onApiKeyInput() {
   const key = document.getElementById('apiKey').value.trim();
@@ -2007,22 +2033,39 @@ function onApiKeyInput() {
 }
 
 function onModelChange() {
-  localStorage.setItem(LS_MODEL, document.getElementById('modelSelect').value);
+  localStorage.setItem(LS_MODEL, document.getElementById('modelInput').value.trim());
+}
+
+function getApiUrl() {
+  return document.getElementById('apiUrl').value.trim();
 }
 
 function getModel() {
-  return document.getElementById('modelSelect').value;
+  return document.getElementById('modelInput').value.trim();
 }
 
 function loadApiKey() {
-  const saved = localStorage.getItem(LS_APIKEY);
-  if (saved) {
-    document.getElementById('apiKey').value = saved;
+  const apiUrl = document.getElementById('apiUrl');
+  const apiKey = document.getElementById('apiKey');
+  const savedUrl = localStorage.getItem(LS_API_URL);
+  const savedKey = localStorage.getItem(LS_APIKEY);
+  const legacyKey = localStorage.getItem(LEGACY_APIKEY);
+
+  if (savedUrl) {
+    apiUrl.value = savedUrl;
+  } else if (legacyKey) {
+    apiUrl.value = LEGACY_VECTOR_URL;
+  } else {
+    apiUrl.value = DEFAULT_API_URL;
+  }
+
+  if (savedKey || legacyKey) {
+    apiKey.value = savedKey || legacyKey;
     document.getElementById('apiSavedBadge').classList.add('show');
   }
   const savedModel = localStorage.getItem(LS_MODEL);
   if (savedModel) {
-    document.getElementById('modelSelect').value = savedModel;
+    document.getElementById('modelInput').value = savedModel;
   }
 }
 
