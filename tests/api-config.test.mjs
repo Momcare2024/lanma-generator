@@ -27,8 +27,10 @@ test('手动模型名称为空时会在请求前提示', () => {
   assert.equal(modelChecks.length, 3);
 });
 
-test('旧 VectorEngine Key 会继续配对旧接口，避免误发给新供应商', () => {
+test('首次升级时清除旧 VectorEngine 配置并切换到 ClaudeCN', () => {
   assert.match(html, /const LEGACY_VECTOR_URL\s*=\s*'https:\/\/vectorengine\.ai\/v1\/messages'/);
-  assert.match(html, /localStorage\.getItem\(LEGACY_APIKEY\)/);
-  assert.match(html, /apiUrl\.value\s*=\s*LEGACY_VECTOR_URL/);
+  assert.match(html, /const LS_API_MIGRATION\s*=\s*'lanma_api_claudecn_v1'/);
+  assert.match(html, /localStorage\.removeItem\(LEGACY_APIKEY\)/);
+  assert.match(html, /savedUrl\s*=\s*DEFAULT_API_URL/);
+  assert.doesNotMatch(html, /apiKey\.value\s*=\s*savedKey\s*\|\|\s*legacyKey/);
 });

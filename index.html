@@ -2014,6 +2014,7 @@ const LEGACY_APIKEY = 'lanma_apikey_vectorengine';
 const LS_API_URL = 'lanma_api_url';
 const LS_APIKEY  = 'lanma_apikey';
 const LS_MODEL   = 'lanma_model';
+const LS_API_MIGRATION = 'lanma_api_claudecn_v1';
 
 function onApiUrlInput() {
   const url = getApiUrl();
@@ -2047,21 +2048,27 @@ function getModel() {
 function loadApiKey() {
   const apiUrl = document.getElementById('apiUrl');
   const apiKey = document.getElementById('apiKey');
-  const savedUrl = localStorage.getItem(LS_API_URL);
-  const savedKey = localStorage.getItem(LS_APIKEY);
-  const legacyKey = localStorage.getItem(LEGACY_APIKEY);
+  let savedUrl = localStorage.getItem(LS_API_URL);
+  let savedKey = localStorage.getItem(LS_APIKEY);
 
-  if (savedUrl) {
-    apiUrl.value = savedUrl;
-  } else if (legacyKey) {
-    apiUrl.value = LEGACY_VECTOR_URL;
-  } else {
-    apiUrl.value = DEFAULT_API_URL;
+  if (!localStorage.getItem(LS_API_MIGRATION)) {
+    localStorage.removeItem(LEGACY_APIKEY);
+    if (!savedUrl || savedUrl === LEGACY_VECTOR_URL) {
+      savedUrl = DEFAULT_API_URL;
+      savedKey = '';
+      localStorage.setItem(LS_API_URL, savedUrl);
+      localStorage.removeItem(LS_APIKEY);
+    }
+    localStorage.setItem(LS_API_MIGRATION, '1');
   }
 
-  if (savedKey || legacyKey) {
-    apiKey.value = savedKey || legacyKey;
+  apiUrl.value = savedUrl || DEFAULT_API_URL;
+  if (savedKey) {
+    apiKey.value = savedKey;
     document.getElementById('apiSavedBadge').classList.add('show');
+  } else {
+    apiKey.value = '';
+    document.getElementById('apiSavedBadge').classList.remove('show');
   }
   const savedModel = localStorage.getItem(LS_MODEL);
   if (savedModel) {
