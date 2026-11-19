@@ -61,7 +61,8 @@ header {
   box-shadow: 0 2px 12px rgba(0,0,0,0.06);
 }
 .api-row label { font-size: 12px; color: #8a7560; white-space: nowrap; font-weight: 500; }
-.api-row input {
+.api-row input,
+.api-row select {
   flex: 1;
   border: 1px solid #ddd5c8;
   border-radius: 7px;
@@ -71,7 +72,8 @@ header {
   outline: none;
   background: #faf7f2;
 }
-.api-row input:focus { border-color: #c0622a; background: #fff; }
+.api-row input:focus,
+.api-row select:focus { border-color: #c0622a; background: #fff; }
 .api-url-input { min-width: 300px; }
 .api-key-input { min-width: 220px; }
 .model-input { min-width: 180px; max-width: 220px; }
@@ -650,14 +652,11 @@ header {
            placeholder="粘贴 EvoLink 的 API Key"
            oninput="onApiKeyInput()">
     <label>模型</label>
-    <input type="text" class="model-input" id="modelInput"
-           list="modelOptions" value="claude-sonnet-5-5"
-           placeholder="选择或输入模型名称" oninput="onModelChange()">
-    <datalist id="modelOptions">
-      <option value="claude-sonnet-5-5">Sonnet 5.5 · 日常写作（推荐）</option>
+    <select class="model-input" id="modelInput" onchange="onModelChange()">
+      <option value="claude-sonnet-5-5" selected>Sonnet 5.5 · 日常写作（推荐）</option>
       <option value="claude-opus-5-5">Opus 5.5 · 精品文章</option>
       <option value="claude-sonnet-4-6">Sonnet 4.6 · 旧版对照</option>
-    </datalist>
+    </select>
     <span class="api-saved-badge" id="apiSavedBadge">🔒 已记住</span>
   </div>
 
@@ -2016,6 +2015,14 @@ const LS_API_URL = 'lanma_api_url';
 const LS_APIKEY  = 'lanma_apikey';
 const LS_MODEL   = 'lanma_model';
 const LS_API_MIGRATION = 'lanma_api_evolink_v1';
+const LS_MODEL_MIGRATION = 'lanma_model_select_v1';
+const DEFAULT_MODEL = 'claude-sonnet-5-5';
+const LEGACY_MODEL = 'claude-sonnet-4-6';
+const SUPPORTED_MODELS = new Set([
+  DEFAULT_MODEL,
+  'claude-opus-5-5',
+  LEGACY_MODEL,
+]);
 
 function onApiUrlInput() {
   const url = getApiUrl();
@@ -2049,8 +2056,10 @@ function getModel() {
 function loadApiKey() {
   const apiUrl = document.getElementById('apiUrl');
   const apiKey = document.getElementById('apiKey');
+  const modelInput = document.getElementById('modelInput');
   let savedUrl = localStorage.getItem(LS_API_URL);
   let savedKey = localStorage.getItem(LS_APIKEY);
+  let savedModel = localStorage.getItem(LS_MODEL);
 
   if (!localStorage.getItem(LS_API_MIGRATION)) {
     localStorage.removeItem(LEGACY_APIKEY);
@@ -2063,6 +2072,19 @@ function loadApiKey() {
     localStorage.setItem(LS_API_MIGRATION, '1');
   }
 
+  if (!localStorage.getItem(LS_MODEL_MIGRATION)) {
+    if (!savedModel || savedModel === LEGACY_MODEL) {
+      savedModel = DEFAULT_MODEL;
+      localStorage.setItem(LS_MODEL, DEFAULT_MODEL);
+    }
+    localStorage.setItem(LS_MODEL_MIGRATION, '1');
+  }
+
+  if (!SUPPORTED_MODELS.has(savedModel)) {
+    savedModel = DEFAULT_MODEL;
+    localStorage.setItem(LS_MODEL, DEFAULT_MODEL);
+  }
+
   apiUrl.value = savedUrl || DEFAULT_API_URL;
   if (savedKey) {
     apiKey.value = savedKey;
@@ -2071,10 +2093,7 @@ function loadApiKey() {
     apiKey.value = '';
     document.getElementById('apiSavedBadge').classList.remove('show');
   }
-  const savedModel = localStorage.getItem(LS_MODEL);
-  if (savedModel) {
-    document.getElementById('modelInput').value = savedModel;
-  }
+  modelInput.value = savedModel;
 }
 
 // ============================================================
