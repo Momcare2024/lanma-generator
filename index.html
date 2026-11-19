@@ -642,21 +642,21 @@ header {
   <div class="api-row" id="apiKeyRow">
     <label>API 地址</label>
     <input type="url" class="api-url-input" id="apiUrl"
-           value="https://claudecn.ai/v1/messages"
-           placeholder="例如 https://claudecn.ai/v1/messages"
+           value="https://direct.evolink.ai/v1/messages"
+           placeholder="例如 https://direct.evolink.ai/v1/messages"
            oninput="onApiUrlInput()">
     <label>API KEY</label>
     <input type="password" class="api-key-input" id="apiKey"
-           placeholder="粘贴当前平台的 sk-... API Key"
+           placeholder="粘贴 EvoLink 的 API Key"
            oninput="onApiKeyInput()">
     <label>模型</label>
     <input type="text" class="model-input" id="modelInput"
-           list="modelOptions" value="claude-sonnet-4-6"
-           placeholder="输入模型名称" oninput="onModelChange()">
+           list="modelOptions" value="claude-sonnet-5-5"
+           placeholder="选择或输入模型名称" oninput="onModelChange()">
     <datalist id="modelOptions">
-      <option value="claude-haiku-4-5">Haiku · 省钱</option>
-      <option value="claude-sonnet-4-6">Sonnet · 精品</option>
-      <option value="claude-opus-4-7">Opus · 高质量</option>
+      <option value="claude-sonnet-5-5">Sonnet 5.5 · 日常写作（推荐）</option>
+      <option value="claude-opus-5-5">Opus 5.5 · 精品文章</option>
+      <option value="claude-sonnet-4-6">Sonnet 4.6 · 旧版对照</option>
     </datalist>
     <span class="api-saved-badge" id="apiSavedBadge">🔒 已记住</span>
   </div>
@@ -2008,13 +2008,14 @@ function importBackup(e) {
 }
 // API 配置持久化
 // ============================================================
-const DEFAULT_API_URL = 'https://claudecn.ai/v1/messages';
+const DEFAULT_API_URL = 'https://direct.evolink.ai/v1/messages';
 const LEGACY_VECTOR_URL = 'https://vectorengine.ai/v1/messages';
+const LEGACY_CLAUDECN_URL = 'https://claudecn.ai/v1/messages';
 const LEGACY_APIKEY = 'lanma_apikey_vectorengine';
 const LS_API_URL = 'lanma_api_url';
 const LS_APIKEY  = 'lanma_apikey';
 const LS_MODEL   = 'lanma_model';
-const LS_API_MIGRATION = 'lanma_api_claudecn_v1';
+const LS_API_MIGRATION = 'lanma_api_evolink_v1';
 
 function onApiUrlInput() {
   const url = getApiUrl();
@@ -2053,7 +2054,7 @@ function loadApiKey() {
 
   if (!localStorage.getItem(LS_API_MIGRATION)) {
     localStorage.removeItem(LEGACY_APIKEY);
-    if (!savedUrl || savedUrl === LEGACY_VECTOR_URL) {
+    if (!savedUrl || savedUrl === LEGACY_VECTOR_URL || savedUrl === LEGACY_CLAUDECN_URL) {
       savedUrl = DEFAULT_API_URL;
       savedKey = '';
       localStorage.setItem(LS_API_URL, savedUrl);
