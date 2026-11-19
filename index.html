@@ -1083,7 +1083,10 @@ function renderRightPanel() {
     textEl.innerHTML = marked.parse(task.result);
     copyBtn.disabled = false;
     const showWarn = !!task.truncated;
-    document.getElementById('truncatedBadge').style.display = showWarn ? '' : 'none';
+    const badge = document.getElementById('truncatedBadge');
+    badge.style.display = showWarn ? '' : 'none';
+    badge.textContent = task.errorMsg ? '⚠️ 未写完，正文已保留' : '⚠️ 未写完';
+    badge.title = task.errorMsg || '';
     document.getElementById('continueBtn').style.display = showWarn ? '' : 'none';
   } else if (task.status === 'error') {
     document.getElementById('truncatedBadge').style.display = 'none';
@@ -1165,12 +1168,12 @@ function escAttr(s) {
   return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function finalOutputGuard(title) {
+function finalOutputGuard(title, continuation = false) {
   return [
     '',
     '【最终输出硬性规则】',
     '只输出最终中文正文。禁止输出任何思考过程、写作计划、提纲、结构说明、自我检查、英文说明或英文项目符号。',
-    '正文第一行必须直接写标题原文：' + (title || ''),
+    continuation ? '从已有正文中断处接续，不要重复标题或已写的正文。' : '正文第一行必须直接写标题原文：' + (title || ''),
     '如果需要思考，请只在内部完成，不要把思考内容写出来。'
   ].join('\n');
 }
@@ -1573,15 +1576,73 @@ async function generateAll() {
   updateExportBtn();
 }
 
-async function generateOne(task, apiKey, promptText) {
-  const courseCtx = buildCourseContext(task.title, task.material);
-  task.refName = courseCtx.refName || '';
+async function readArticleStream(body, onText) {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let output = '';
+  let stopReason = '';
+  let streamError = '';
 
-  setTaskStatus(task.id, 'run');
-  setActiveView(task.id);  // 自动切换到当前生成任务
+  function readLine(line) {
+    if (!line.startsWith('data:')) return;
+    const data = line.slice(5).trim();
+    if (!data || data === '[DONE]') return;
+    let event;
+    try { event = JSON.parse(data); } catch { return; }
+    if (event.type === 'error') {
+      streamError = event.error?.message || 'API 返回流式错误';
+      return;
+    }
+    const choice = event.choices?.[0];
+    stopReason = event.delta?.stop_reason || choice?.finish_reason || stopReason;
+    const chunk = event.delta?.text || choice?.delta?.content;
+    if (typeof chunk === 'string' && chunk) {
+      output += chunk;
+      onText(output);
+    }
+  }
 
   try {
-    const resp = await fetch(getApiUrl(), {
+    while (true) {
+      let next;
+      try { next = await reader.read(); } catch (err) {
+        if (!output) throw err;
+        streamError ||= err.message || '生成时连接中断';
+        break;
+      }
+      if (next.done) {
+        readLine(buffer + decoder.decode());
+        break;
+      }
+      const lines = (buffer + decoder.decode(next.value, { stream: true })).split('\n');
+      buffer = lines.pop();
+      for (const line of lines) readLine(line);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  if (!output && streamError) throw new Error(streamError);
+  return { text: output, stopReason, streamError };
+}
+
+async function requestArticle(task, { url, model, apiKey }, system, messages, prefix = '') {
+  const cursor = document.createElement('span');
+  cursor.className = 'cursor';
+  function showText(text) {
+    if (activeViewId !== task.id) return;
+    document.getElementById('singleLoading').style.display = 'none';
+    const textEl = document.getElementById('singleText');
+    textEl.style.display = 'block';
+    textEl.classList.add('streaming');
+    textEl.textContent = prefix + text;
+    textEl.appendChild(cursor);
+    document.getElementById('singleBody').scrollTop = 999999;
+  }
+  if (prefix) showText('');
+
+  try {
+    const resp = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1589,84 +1650,67 @@ async function generateOne(task, apiKey, promptText) {
         'Authorization': `Bearer ${apiKey}`,
         'anthropic-version': '2023-06-01',
       },
-      body: JSON.stringify({
-        model: getModel(),
-        max_tokens: 4096,
-        stream: true,
-        system: promptText + courseCtx.text + finalOutputGuard(task.title),
-        messages: [{ role: 'user', content: `标题：${task.title}\n\n素材：${task.material}` }]
-      })
+      body: JSON.stringify({ model, max_tokens: 12000, stream: true, system, messages })
     });
 
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({}));
       throw new Error(err.error?.message || 'HTTP ' + resp.status);
     }
+    if (!resp.body) throw new Error('未收到生成内容');
+    return await readArticleStream(resp.body, showText);
+  } finally {
+    cursor.remove();
+  }
+}
 
-    // 准备流式展示区
-    if (activeViewId === task.id) {
-      document.getElementById('singleLoading').style.display = 'none';
-      const textEl = document.getElementById('singleText');
-      textEl.style.display = 'block';
-      textEl.classList.add('streaming');
-      textEl.innerHTML = '';
-    }
+function articleInput(task) {
+  return { role: 'user', content: `标题：${task.title}\n\n素材：${task.material}` };
+}
 
-    const cursor = document.createElement('span');
-    cursor.className = 'cursor';
+async function appendArticleContinuation(task, config, system) {
+  const prefix = task.result;
+  const output = await requestArticle(task, config, system + finalOutputGuard(task.title, true), [
+    articleInput(task),
+    { role: 'assistant', content: prefix },
+    { role: 'user', content: '从中断处直接接着写。若停在半句话，请先接完；若已达到目标篇幅，只补自然的结尾。不要重复或重写已有内容，只输出最终中文正文的续写。' },
+  ], prefix);
+  if (!output.text.trim()) throw new Error('未收到续写内容');
+  task.result = prefix + output.text.trimEnd();
+  task.truncated = isLikelyTruncated(task.result, output);
+  task.errorMsg = output.streamError;
+}
 
-    const reader = resp.body.getReader();
-    const decoder = new TextDecoder();
-    let full = '';
+async function generateOne(task, apiKey, promptText) {
+  const courseCtx = buildCourseContext(task.title, task.material);
+  const system = promptText + courseCtx.text;
+  const config = { url: getApiUrl(), model: getModel(), apiKey };
+  task.refName = courseCtx.refName || '';
+  task.errorMsg = '';
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      for (const line of decoder.decode(value, { stream: true }).split('\n')) {
-        if (!line.startsWith('data: ')) continue;
-        const data = line.slice(6).trim();
-        if (!data || data === '[DONE]') continue;
-        try {
-          const parsed = JSON.parse(data);
-          const chunk = parsed.delta?.text || parsed.choices?.[0]?.delta?.content || '';
-          if (chunk) {
-            full += chunk;
-            // 只在当前查看的任务上更新 DOM
-            if (activeViewId === task.id) {
-              const textEl = document.getElementById('singleText');
-              if (textEl) {
-                const escaped = full.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-                textEl.innerHTML = escaped;
-                textEl.appendChild(cursor);
-                document.getElementById('singleBody').scrollTop = 999999;
-              }
-            }
-          }
-        } catch(e) {}
+  setTaskStatus(task.id, 'run');
+  setActiveView(task.id);
+
+  try {
+    const output = await requestArticle(task, config, system + finalOutputGuard(task.title), [articleInput(task)]);
+    task.result = normalizeGeneratedArticle(output.text, task.title);
+    if (!task.result) throw new Error('未收到任何内容，请检查 API Key 和模型名称是否正确');
+    task.truncated = isLikelyTruncated(task.result, output);
+    if (output.streamError) {
+      task.errorMsg = output.streamError;
+    } else if (task.truncated) {
+      // 只自动续写一次；再遇到截断则由用户决定是否继续。
+      try { await appendArticleContinuation(task, config, system); } catch (err) {
+        task.errorMsg = err.message || '续写失败';
       }
     }
-
-    cursor.remove();
-    if (!full) throw new Error('未收到任何内容，请检查 API Key 和模型名称是否正确');
-
-    full = normalizeGeneratedArticle(full, task.title);
-    task.result = full;
-    task.truncated = isLikelyTruncated(full);
     setTaskStatus(task.id, 'done');
-    saveToStorage(); // 每篇完成立即持久化，防止刷新丢失
-
-    // 渲染 Markdown（无论是否是当前查看，都存好；若是当前查看则立即渲染）
-    if (activeViewId === task.id) {
-      const textEl = document.getElementById('singleText');
-      if (textEl) { textEl.classList.remove('streaming'); textEl.innerHTML = marked.parse(full); }
-    }
-    renderRightPanel(); // 更新 nav pills
-
-  } catch(err) {
+    saveToStorage();
+  } catch (err) {
     task.errorMsg = err.message || '请求失败';
     setTaskStatus(task.id, 'error');
-    renderRightPanel();
   }
+  renderRightPanel();
 }
 
 async function retryTask(taskId) {
@@ -1692,17 +1736,16 @@ async function retryTask(taskId) {
   updateExportBtn();
 }
 
-// 检测文章是否可能未写完（末尾没有合法结束标点）
-function isLikelyTruncated(text) {
-  if (!text) return false;
-  const trimmed = text.trimEnd();
-  if (!trimmed) return false;
-  const last = trimmed[trimmed.length - 1];
-  return !['。', '！', '？', '…', '.', '!', '?', '"', '"', '）', ')', '】', ']'].includes(last);
+// 接口停止原因优先；末尾标点用于补充判断。
+function isLikelyTruncated(text, { stopReason, streamError }) {
+  if (streamError || stopReason === 'max_tokens' || stopReason === 'length') return true;
+  if (stopReason === 'refusal' || stopReason === 'content_filter') return false;
+  return !/[。！？….!?"”’）)】\]][*_`~]*$/.test(text.trimEnd());
 }
 
 // 从断点继续续写
 async function continueTask() {
+  if (isGenerating) return;
   if (!getApiUrl()) { alert('请先填写 API 地址'); return; }
   if (!getModel()) { alert('请先填写模型名称'); return; }
   const apiKey = document.getElementById('apiKey').value.trim();
@@ -1712,11 +1755,11 @@ async function continueTask() {
   if (!c) return;
   const task = c.tasks.find(t => t.id === activeViewId);
   if (!task || !task.result) return;
+  const config = { url: getApiUrl(), model: getModel(), apiKey };
 
   isGenerating = true;
   document.getElementById('genBtn').disabled = true;
   document.getElementById('continueBtn').disabled = true;
-  document.getElementById('truncatedBadge').style.display = 'none';
 
   const promptText = getLivePromptText() || c.prompt || '';
   c.prompt = promptText;
@@ -1726,93 +1769,17 @@ async function continueTask() {
   task.refName = courseCtx.refName || task.refName || '';
 
   setTaskStatus(task.id, 'run');
-
-  const textEl = document.getElementById('singleText');
-  const singleLoading = document.getElementById('singleLoading');
-  if (singleLoading) singleLoading.style.display = 'none';
-  if (textEl) {
-    textEl.style.display = 'block';
-    textEl.classList.add('streaming');
-    const escaped = task.result.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    textEl.innerHTML = escaped;
-  }
+  renderRightPanel();
 
   try {
-    const resp = await fetch(getApiUrl(), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'Authorization': `Bearer ${apiKey}`,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: getModel(),
-        max_tokens: 4096,
-        stream: true,
-        system: promptText + courseCtx.text + finalOutputGuard(task.title),
-        messages: [
-          { role: 'user', content: `标题：${task.title}\n\n素材：${task.material}` },
-          { role: 'assistant', content: task.result },
-          { role: 'user', content: '请继续写完上面未完成的内容，从中断处直接接续，不要重复已有内容。只输出最终中文正文的续写内容，禁止输出思考过程、提纲、结构说明或英文。' }
-        ]
-      })
-    });
-
-    if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
-      throw new Error(err.error?.message || 'HTTP ' + resp.status);
-    }
-
-    const cursor = document.createElement('span');
-    cursor.className = 'cursor';
-    const reader = resp.body.getReader();
-    const decoder = new TextDecoder();
-    let extra = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      for (const line of decoder.decode(value, { stream: true }).split('\n')) {
-        if (!line.startsWith('data: ')) continue;
-        const data = line.slice(6).trim();
-        if (!data || data === '[DONE]') continue;
-        try {
-          const parsed = JSON.parse(data);
-          const chunk = parsed.delta?.text || parsed.choices?.[0]?.delta?.content || '';
-          if (chunk) {
-            extra += chunk;
-            if (activeViewId === task.id && textEl) {
-              const combined = task.result + extra;
-              const escaped = combined.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-              textEl.innerHTML = escaped;
-              textEl.appendChild(cursor);
-              document.getElementById('singleBody').scrollTop = 999999;
-            }
-          }
-        } catch(e) {}
-      }
-    }
-
-    cursor.remove();
-    if (!extra) throw new Error('未收到续写内容');
-
-    extra = normalizeGeneratedArticle(extra, '');
-    task.result = task.result + extra;
-    task.truncated = isLikelyTruncated(task.result);
+    await appendArticleContinuation(task, config, promptText + courseCtx.text);
+  } catch (err) {
+    task.errorMsg = err.message || '续写失败';
+    task.truncated = true;
+  } finally {
     setTaskStatus(task.id, 'done');
-    if (activeViewId === task.id && textEl) {
-      textEl.classList.remove('streaming');
-      textEl.innerHTML = marked.parse(task.result);
-    }
     saveToStorage();
     renderRightPanel();
-
-  } catch(err) {
-    task.errorMsg = err.message || '续写失败';
-    setTaskStatus(task.id, 'error');
-    renderRightPanel();
-  } finally {
     isGenerating = false;
     document.getElementById('genBtn').disabled = false;
     document.getElementById('continueBtn').disabled = false;

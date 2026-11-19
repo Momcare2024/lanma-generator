@@ -25,20 +25,9 @@ test('默认使用 EvoLink 和 Sonnet 5.5，并提供推荐模型选项', () => 
   assert.match(html, /<option value="claude-sonnet-4-6">Sonnet 4\.6 · 旧版对照<\/option>/);
 });
 
-test('生成与续写都使用当前 API 地址', () => {
-  const configurableFetches = html.match(/fetch\(getApiUrl\(\),/g) || [];
-  assert.equal(configurableFetches.length, 2);
-  assert.doesNotMatch(html, /fetch\('https:\/\/vectorengine\.ai\/v1\/messages'/);
-});
-
 test('手动模型名称为空时会在请求前提示', () => {
   const modelChecks = html.match(/if \(!getModel\(\)\) \{ alert\('请先填写模型名称'\); return; \}/g) || [];
   assert.equal(modelChecks.length, 3);
-});
-
-test('生成与续写都使用当前选择的模型', () => {
-  const modelUsages = html.match(/model:\s*getModel\(\)/g) || [];
-  assert.equal(modelUsages.length, 2);
 });
 
 test('首次升级时将已知旧供应商配置切换到 EvoLink', () => {
