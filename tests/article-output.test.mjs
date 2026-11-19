@@ -160,3 +160,31 @@ test('流式连接中断时保留已收到的草稿，交给用户决定是否�
   assert.equal(page.task.truncated, true);
   assert.equal(page.getElementById('continueBtn').style.display, '');
 });
+
+test('流结束但未收到结束信号时，不把句号误判为全文完成', async () => {
+  const event = { type: 'content_block_delta', delta: { text: draft } };
+  const page = setup([new Response(`data: ${JSON.stringify(event)}\n\n`)]);
+  await page.generate();
+  assert.equal(page.requests.length, 1);
+  assert.equal(page.task.result, draft);
+  assert.equal(page.task.truncated, true);
+  assert.equal(page.getElementById('continueBtn').style.display, '');
+});
+
+test('自动续写等待期间，刷新仍能恢复已收到的草稿', async () => {
+  let finish;
+  const pending = new Promise(resolve => { finish = resolve; });
+  const page = setup([stream(draft, 'max_tokens'), pending]);
+  const generation = page.generate();
+  try {
+    await new Promise(setImmediate);
+    assert.equal(page.requests.length, 2);
+    const saved = JSON.parse(page.storage.get('lanma_v3') ?? '{}').courses?.[0].tasks[0];
+    assert.equal(saved?.result, draft);
+    assert.equal(saved.status, 'done');
+    assert.equal(saved.truncated, true);
+  } finally {
+    finish(stream('\n\n这是补上的结尾。'));
+    await generation;
+  }
+});

@@ -841,7 +841,7 @@ const LS_KEY = 'lanma_v3';
 function saveToStorage() {
   const taskData = t => ({
     id: t.id, title: t.title, material: t.material,
-    status: t.status === 'run' ? 'wait' : (t.status || 'wait'),
+    status: t.status === 'run' ? (t.truncated && t.result ? 'done' : 'wait') : (t.status || 'wait'),
     result: t.result || '',
     refName: t.refName || '',
     truncated: t.truncated || false,
@@ -1582,14 +1582,17 @@ async function readArticleStream(body, onText) {
   let buffer = '';
   let output = '';
   let stopReason = '';
+  let sawEnd = false;
   let streamError = '';
 
   function readLine(line) {
     if (!line.startsWith('data:')) return;
     const data = line.slice(5).trim();
-    if (!data || data === '[DONE]') return;
+    if (!data) return;
+    if (data === '[DONE]') { sawEnd = true; return; }
     let event;
     try { event = JSON.parse(data); } catch { return; }
+    if (event.type === 'message_stop') sawEnd = true;
     if (event.type === 'error') {
       streamError = event.error?.message || 'API 返回流式错误';
       return;
@@ -1622,6 +1625,7 @@ async function readArticleStream(body, onText) {
   } finally {
     reader.releaseLock();
   }
+  if (output && !sawEnd && !stopReason) streamError ||= '生成时连接中断';
   if (!output && streamError) throw new Error(streamError);
   return { text: output, stopReason, streamError };
 }
@@ -1700,6 +1704,7 @@ async function generateOne(task, apiKey, promptText) {
       task.errorMsg = output.streamError;
     } else if (task.truncated) {
       // 只自动续写一次；再遇到截断则由用户决定是否继续。
+      saveToStorage(); // 续写期间刷新时，仍可恢复并手动续写这份草稿。
       try { await appendArticleContinuation(task, config, system); } catch (err) {
         task.errorMsg = err.message || '续写失败';
       }
