@@ -25,7 +25,18 @@ header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px 18px;
+  flex-wrap: wrap;
 }
+.app-nav { display: flex; gap: 6px; }
+.nav-tab {
+  padding: 6px 14px; border-radius: 999px; border: 1px solid #3a2e24;
+  background: transparent; color: #a89080; font-size: 13px; font-family: inherit;
+  cursor: pointer; letter-spacing: 1px;
+}
+.nav-tab.active { background: #c0622a; color: #fff; border-color: #c0622a; font-weight: 600; }
+body.in-chat { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+body.in-chat header { flex: none; }
 .logo { color: #faf7f2; font-size: 18px; font-weight: 700; letter-spacing: 2px; }
 .logo span { color: #e8915a; }
 .logo-sub { color: #665544; font-size: 12px; letter-spacing: 2px; }
@@ -448,8 +459,14 @@ header {
 }
 .continue-btn:hover { background: #c0622a; color: white; }
 .continue-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.undo-inline {
+  padding: 4px 12px; border-radius: 20px; font-size: 12px;
+  font-family: inherit; cursor: pointer; transition: all 0.2s;
+  background: #fff; color: #8a7560; border: 1px solid #ddd5c8;
+}
+.undo-inline:hover { border-color: #c0622a; color: #c0622a; }
 
-.result-body { padding: 20px; max-height: 460px; overflow-y: auto; }
+.result-body { padding: 20px; max-height: 620px; overflow-y: auto; }
 .result-body::-webkit-scrollbar { width: 3px; }
 .result-body::-webkit-scrollbar-thumb { background: #ddd5c8; border-radius: 2px; }
 
@@ -626,98 +643,192 @@ header {
 .radio-label { display: flex; align-items: center; gap: 5px; font-size: 13px; color: #665544; cursor: pointer; }
 .radio-label input { cursor: pointer; accent-color: #c0622a; }
 
-/* 和 Claude 改稿 */
-.chat-card {
-  background: #fff;
-  border: 1px solid #ddd5c8;
-  border-radius: 12px;
-  padding: 14px 16px 16px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-  display: flex;
-  flex-direction: column;
+/* Claude 对话页 */
+#chatView[hidden], #writerView[hidden] { display: none !important; }
+.claude-app {
+  flex: 1; min-height: 0;
+  background: #faf7f2;
+  color: #1a1208;
+}
+.claude-app:not([hidden]) { display: flex; }
+.chat-side {
+  width: 268px; flex: none;
+  background: #f3eee6;
+  border-right: 1px solid #ddd5c8;
+  display: flex; flex-direction: column;
+  padding: 14px 12px;
   gap: 10px;
 }
-.chat-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
-.chat-head-actions { display: flex; gap: 6px; flex-wrap: wrap; }
-.chat-mode, .chat-new {
-  padding: 5px 12px;
-  border-radius: 20px;
-  border: 1px solid #ddd5c8;
-  background: #fff;
-  color: #8a7560;
-  font-size: 12px;
-  font-family: inherit;
-  cursor: pointer;
-  transition: all 0.2s;
+.new-chat-btn {
+  width: 100%; padding: 10px 12px;
+  border: 1px solid #c0622a; border-radius: 12px;
+  background: #fff; color: #c0622a;
+  font-size: 14px; font-weight: 700; font-family: inherit;
+  cursor: pointer; letter-spacing: 1px;
 }
-.chat-mode:hover, .chat-new:hover { border-color: #e8915a; color: #c0622a; }
-.chat-mode.active { background: #c0622a; color: #fff; border-color: #c0622a; font-weight: 600; }
-.chat-mode.active:hover { color: #fff; }
-.chat-context {
-  font-size: 12px; color: #665544; line-height: 1.65;
-  background: #faf7f2; border-radius: 8px; padding: 8px 10px;
+.new-chat-btn:hover { background: #c0622a; color: #fff; }
+.side-close {
+  display: none; border: none; background: none; color: #8a7560;
+  font-family: inherit; font-size: 12px; cursor: pointer; text-align: right;
 }
-.chat-warn, .chat-notice {
-  font-size: 12px; line-height: 1.65; border-radius: 8px; padding: 8px 10px;
+.session-list { flex: 1; overflow: auto; display: flex; flex-direction: column; gap: 4px; }
+.session-list::-webkit-scrollbar { width: 3px; }
+.session-list::-webkit-scrollbar-thumb { background: #ddd5c8; border-radius: 2px; }
+.session-empty { color: #8a7560; font-size: 12px; line-height: 1.6; padding: 8px; }
+.session-item {
+  display: flex; align-items: center; gap: 4px;
+  padding: 8px 8px; border-radius: 10px; cursor: pointer;
 }
-.chat-warn { color: #9a6b00; background: #fff8e0; border: 1px solid #f0c840; }
-.chat-notice { color: #4a7c59; background: #eaf4ee; border: 1px solid #b7d7c2; }
-.chat-log {
-  max-height: 420px; overflow-y: auto;
-  display: flex; flex-direction: column; gap: 8px;
-  padding-right: 2px;
+.session-item:hover { background: rgba(192,98,42,0.08); }
+.session-item.active { background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+.session-title {
+  flex: 1; min-width: 0; font-size: 13px; line-height: 1.4;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.chat-log:empty { display: none; }
-.chat-log::-webkit-scrollbar { width: 3px; }
-.chat-log::-webkit-scrollbar-thumb { background: #ddd5c8; border-radius: 2px; }
-.chat-msg { border-radius: 10px; padding: 10px 12px; font-size: 13px; line-height: 1.75; }
-.chat-msg.user { background: #f5ede0; align-self: flex-end; max-width: 92%; }
-.chat-msg.assistant { background: #faf7f2; border: 1px solid #eee6dc; }
-.chat-msg.note { background: #fff8e0; border: 1px solid #f0c840; color: #6b5400; }
-.chat-msg .who { font-size: 11px; color: #8a7560; margin-bottom: 4px; }
-.chat-body { white-space: pre-wrap; word-break: break-word; }
-.chat-actions { display: flex; flex-direction: column; gap: 8px; }
-.chat-actions:empty { display: none; }
-.chat-replace-note { font-size: 13px; color: #4a7c59; line-height: 1.6; font-weight: 600; }
-.replace-btn {
-  width: 100%; padding: 12px 16px;
-  background: #4a7c59; color: #fff; border: none; border-radius: 10px;
-  font-size: 16px; font-weight: 700; font-family: inherit;
-  letter-spacing: 1px; cursor: pointer;
-  box-shadow: 0 4px 12px rgba(74,124,89,0.28);
-  transition: all 0.2s;
+.session-mini {
+  border: none; background: none; color: #8a7560;
+  font-size: 11px; font-family: inherit; cursor: pointer; padding: 2px 4px;
 }
-.replace-btn:hover { background: #3a6347; }
-.undo-btn, .undo-inline {
-  padding: 8px 14px; border-radius: 10px; font-size: 13px;
-  font-family: inherit; cursor: pointer; transition: all 0.2s;
-  background: #fff; color: #8a7560; border: 1px solid #ddd5c8;
+.session-mini:hover { color: #c0622a; }
+.chat-main { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0; }
+.chat-top {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px; border-bottom: 1px solid #eee6dc;
 }
-.undo-btn { width: 100%; }
-.undo-btn:hover, .undo-inline:hover { border-color: #c0622a; color: #c0622a; }
-.chat-compose { display: flex; gap: 8px; align-items: flex-end; }
-.chat-compose textarea {
-  flex: 1; min-height: 74px; max-height: 180px;
-  border: 1px solid #ddd5c8; border-radius: 8px;
-  padding: 8px 10px; font-size: 13px; font-family: inherit;
-  line-height: 1.6; resize: vertical; outline: none;
-  background: #faf7f2; color: #1a1208;
+.side-toggle {
+  display: none; border: 1px solid #ddd5c8; background: #fff;
+  border-radius: 8px; padding: 6px 10px; font-family: inherit; font-size: 12px; cursor: pointer;
 }
-.chat-compose textarea:focus { border-color: #c0622a; background: #fff; }
-.chat-send {
-  padding: 10px 18px; background: #c0622a; color: #fff;
-  border: none; border-radius: 8px; font-size: 14px; font-weight: 600;
-  font-family: inherit; cursor: pointer; white-space: nowrap;
+.chat-top-title { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-warn {
+  margin: 10px 16px 0; font-size: 13px; line-height: 1.6;
+  color: #9a6b00; background: #fff8e0; border: 1px solid #f0c840;
+  border-radius: 10px; padding: 8px 12px;
 }
-.chat-send:hover:not(:disabled) { background: #a8541f; }
-.chat-send:disabled { opacity: 0.45; cursor: not-allowed; }
-.chat-hint { font-size: 11px; color: #8a7560; line-height: 1.5; }
+.chat-scroll { flex: 1; overflow: auto; }
+.chat-scroll::-webkit-scrollbar { width: 6px; }
+.chat-scroll::-webkit-scrollbar-thumb { background: #ddd5c8; border-radius: 3px; }
+.chat-column {
+  max-width: 780px; margin: 0 auto; padding: 28px 20px 16px;
+  min-height: 100%; display: flex; flex-direction: column; gap: 18px;
+}
+.chat-hero { margin: auto; text-align: center; padding: 48px 12px; }
+.chat-hero h2 { font-size: 28px; font-weight: 650; letter-spacing: 1px; margin-bottom: 8px; }
+.chat-hero p { color: #8a7560; font-size: 14px; line-height: 1.7; }
+.msg { display: flex; flex-direction: column; gap: 6px; }
+.msg.user { align-self: flex-end; max-width: min(640px, 92%); background: #f5ede0; border-radius: 16px; padding: 10px 14px; }
+.msg.assistant { align-self: stretch; }
+.msg-role { font-size: 12px; color: #8a7560; }
+.msg-text { white-space: pre-wrap; word-break: break-word; line-height: 1.75; font-size: 15px; }
+.msg-body { font-size: 15px; line-height: 1.75; word-break: break-word; }
+.msg-body h1 { font-size: 22px; margin: 16px 0 8px; }
+.msg-body h2 { font-size: 18px; margin: 14px 0 6px; color: #c0622a; }
+.msg-body h3 { font-size: 16px; margin: 12px 0 6px; }
+.msg-body p { margin: 0 0 10px; }
+.msg-body ul, .msg-body ol { padding-left: 1.3em; margin: 0 0 10px; }
+.msg-body li { margin: 2px 0; }
+.msg-body blockquote { border-left: 3px solid #c0622a; margin: 8px 0; padding-left: 12px; color: #665544; }
+.msg-body a { color: #c0622a; }
+.msg-body code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; background: #f5ede0; padding: 1px 5px; border-radius: 4px; }
+.code-wrap { position: relative; margin: 8px 0 12px; }
+.code-wrap pre {
+  background: #1a1208; color: #faf7f2; border-radius: 12px;
+  padding: 14px 14px 12px; overflow: auto; margin: 0;
+}
+.code-wrap code { background: none; color: inherit; padding: 0; }
+.code-copy {
+  position: absolute; top: 8px; right: 8px;
+  border: 1px solid #665544; background: transparent; color: #faf7f2;
+  border-radius: 8px; padding: 3px 8px; font-size: 12px; font-family: inherit; cursor: pointer;
+}
+.msg-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.msg-action, .writeback-btn {
+  border: 1px solid #ddd5c8; background: #fff; color: #665544;
+  border-radius: 999px; padding: 4px 10px; font-size: 12px; font-family: inherit; cursor: pointer;
+}
+.msg-action:hover, .writeback-btn:hover { border-color: #c0622a; color: #c0622a; }
+.writeback-btn { border-color: #4a7c59; color: #4a7c59; font-weight: 700; }
+.msg-edit { width: 100%; min-height: 72px; border: 1px solid #ddd5c8; border-radius: 10px; padding: 8px; font-family: inherit; font-size: 14px; }
+.composer-dock { padding: 0 16px 14px; }
+.history-note, .sys-pop, .cite-hint {
+  max-width: 780px; margin: 0 auto 8px;
+  font-size: 12px; line-height: 1.6; color: #8a7560;
+}
+.history-note { color: #9a6b00; background: #fff8e0; border-radius: 8px; padding: 6px 10px; }
+.sys-pop {
+  background: #fff; border: 1px solid #ddd5c8; border-radius: 12px; padding: 12px;
+  display: flex; flex-direction: column; gap: 8px; color: #1a1208;
+}
+.sys-pop[hidden], .history-note[hidden], .chat-warn[hidden], .stop-btn[hidden], .send-btn[hidden] { display: none !important; }
+.sys-pop textarea {
+  width: 100%; min-height: 72px; border: 1px solid #ddd5c8; border-radius: 8px;
+  padding: 8px; font-family: inherit; font-size: 13px; background: #faf7f2;
+}
+.sys-check { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.composer {
+  max-width: 780px; margin: 0 auto;
+  background: #fff; border: 1px solid #ddd5c8; border-radius: 18px;
+  box-shadow: 0 8px 28px rgba(26,18,8,0.06);
+  padding: 10px 12px 8px;
+}
+.composer.drag { border-color: #c0622a; background: #fff8f4; }
+.attach-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.attach-row:empty { display: none; }
+.attach-chip {
+  display: flex; align-items: center; gap: 6px;
+  background: #f5ede0; border-radius: 999px; padding: 3px 8px 3px 10px;
+  font-size: 12px; max-width: 100%;
+}
+.attach-chip button { border: none; background: none; cursor: pointer; color: #8a7560; font-size: 14px; }
+#composerInput {
+  width: 100%; border: none; resize: none; outline: none;
+  font-family: inherit; font-size: 15px; line-height: 1.6;
+  min-height: 44px; max-height: 200px; background: transparent; color: #1a1208;
+}
+.composer-tools { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.tool-btn, .chat-model {
+  border: 1px solid #ddd5c8; background: #fff; color: #665544;
+  border-radius: 999px; padding: 6px 10px; font-size: 12px; font-family: inherit; cursor: pointer;
+}
+.chat-model { max-width: 210px; }
+.composer-spacer { flex: 1; }
+.send-btn, .stop-btn {
+  border: none; border-radius: 999px; padding: 8px 16px;
+  font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer;
+}
+.send-btn { background: #c0622a; color: #fff; }
+.send-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.stop-btn { background: #fff; color: #c0392b; border: 1px solid #c0392b; }
+.composer-hint { max-width: 780px; margin: 6px auto 0; font-size: 11px; color: #8a7560; }
+.side-mask { display: none; }
+.cite-list { display: flex; flex-direction: column; gap: 8px; max-height: 360px; overflow: auto; }
+.cite-item { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; line-height: 1.5; }
+.cite-item small { display: block; color: #8a7560; }
+@media (max-width: 800px) {
+  .side-toggle, .side-close { display: inline-flex; }
+  header { position: relative; z-index: 40; }
+  .chat-side {
+    position: fixed; z-index: 30; top: 64px; bottom: 0; left: 0;
+    width: min(86vw, 300px);
+    transform: translateX(-110%);
+    transition: transform 0.2s ease;
+    box-shadow: 8px 0 24px rgba(0,0,0,0.08);
+  }
+  .chat-side.open { transform: none; }
+  .side-mask.show { display: block; position: fixed; inset: 0; background: rgba(26,18,8,0.4); z-index: 25; }
+  .chat-hero h2 { font-size: 22px; }
+  header { padding: 12px 14px; }
+}
 </style>
 </head>
 <body>
 
 <header>
   <div class="logo">懒妈方宁 <span>·</span> 文案生成器</div>
+  <nav class="app-nav">
+    <button class="nav-tab active" id="navWriter" type="button" onclick="showAppView('writer')">写文章</button>
+    <button class="nav-tab" id="navChat" type="button" onclick="showAppView('chat')">Claude 对话</button>
+  </nav>
   <div class="header-actions">
     <button class="backup-btn" type="button" onclick="exportBackup()">⬇ 导出备份</button>
     <input type="file" id="restoreInput" accept=".json" style="display:none" onchange="importBackup(event)">
@@ -725,6 +836,7 @@ header {
   </div>
 </header>
 
+<div id="writerView">
 <div class="container">
 
   <!-- API 配置（全局） -->
@@ -809,7 +921,7 @@ header {
       <!-- 空状态 -->
       <div class="empty-state" id="emptyState">
         <div class="ei">✍️</div>
-        <p>上传课程文档，填写标题和素材<br>点击「开始生成」后文章出现在这里<br>写好后，可以在下面和 Claude 改重复的句子</p>
+        <p>上传课程文档，填写标题和素材<br>点击「开始生成」后文章出现在这里<br>想聊天，点顶部的「Claude 对话」</p>
       </div>
 
       <!-- 文章导航（2篇以上显示） -->
@@ -835,34 +947,97 @@ header {
           <div class="result-text streaming" id="singleText" style="display:none"></div>
         </div>
       </div>
-
-      <div class="chat-card" id="chatBox">
-        <div class="chat-head">
-          <div class="section-title">和 Claude 改稿</div>
-          <div class="chat-head-actions">
-            <button class="chat-mode active" id="chatModeArticle" type="button" onclick="setChatMode('article')">改当前文章</button>
-            <button class="chat-mode" id="chatModeGeneral" type="button" onclick="setChatMode('general')">不带文章</button>
-            <button class="chat-new" id="chatNewBtn" type="button" onclick="startNewChat()">新对话</button>
-          </div>
-        </div>
-        <div class="chat-context" id="chatContext">点开一篇已生成的文章，就可以让 Claude 帮你改。</div>
-        <div class="chat-warn" id="chatWarn" style="display:none"></div>
-        <div class="chat-log" id="chatLog"></div>
-        <div class="chat-actions" id="chatActions">
-          <div class="chat-replace-note" id="replaceNote" style="display:none"></div>
-          <button class="replace-btn" id="replaceBtn" type="button" onclick="applyChatRevision()" style="display:none">用这篇替换原稿</button>
-          <button class="undo-btn" id="undoReplaceBtn" type="button" onclick="undoChatRevision()" style="display:none">恢复上一稿</button>
-          <div class="chat-notice" id="chatNotice" style="display:none"></div>
-        </div>
-        <div class="chat-compose">
-          <textarea id="chatInput" placeholder="例如：结尾和前面几篇太像了，帮我换一种收法，先别重写全文。" onkeydown="onChatKeydown(event)"></textarea>
-          <button class="chat-send" id="chatSendBtn" type="button" onclick="sendChat()">发送</button>
-        </div>
-        <div class="chat-hint" id="chatHint">Enter 发送，Shift+Enter 换行。只改草稿，不会发布。</div>
-      </div>
     </div>
   </div>
 
+</div>
+</div>
+
+<div id="chatView" class="claude-app" hidden>
+  <div class="side-mask" id="sideMask" onclick="closeChatSide()"></div>
+  <aside class="chat-side" id="chatSide">
+    <button class="side-close" type="button" onclick="closeChatSide()">关闭</button>
+    <button class="new-chat-btn" type="button" onclick="newClaudeChat()">＋ 新建对话</button>
+    <div class="session-list" id="sessionList"></div>
+  </aside>
+  <main class="chat-main">
+    <div class="chat-top">
+      <button class="side-toggle" type="button" onclick="toggleChatSide()">对话列表</button>
+      <div class="chat-top-title" id="chatTopTitle">新对话</div>
+    </div>
+    <div class="chat-warn" id="chatWarn" hidden></div>
+    <div class="chat-scroll" id="chatScroll">
+      <div class="chat-column" id="chatStream"></div>
+    </div>
+    <div class="composer-dock">
+      <div class="history-note" id="historyNote" hidden></div>
+      <div class="sys-pop" id="sysPop" hidden>
+        <label for="sysNote">这段对话的说明（可选，像项目说明）</label>
+        <textarea id="sysNote" placeholder="例如：你是育儿编辑，句子短一点。留空就是普通对话。" oninput="onSysNoteInput()"></textarea>
+        <label class="sys-check"><input type="checkbox" id="useCourse" onchange="onUseCourseChange()"> 带上当前课程的专属提示词</label>
+        <div class="sys-hint" id="courseHint"></div>
+      </div>
+      <div class="composer" id="composer" ondragover="onComposerDrag(event)" ondragleave="onComposerDragLeave(event)" ondrop="onComposerDrop(event)">
+        <div class="attach-row" id="attachRow"></div>
+        <textarea id="composerInput" rows="1" placeholder="发消息给 Claude…" onkeydown="onComposerKeydown(event)" oninput="growComposer()" onpaste="onComposerPaste(event)"></textarea>
+        <div class="composer-tools">
+          <input type="file" id="attachInput" hidden multiple accept=".txt,.md,.csv,.tsv,.docx,.xlsx,.xls,.png,.jpg,.jpeg,.gif,.webp,text/plain,image/*" onchange="onAttachPick(event)">
+          <button class="tool-btn" type="button" onclick="document.getElementById('attachInput').click()">＋ 附件</button>
+          <button class="tool-btn" type="button" onclick="openCiteModal()">引用文章</button>
+          <button class="tool-btn" id="sysToggle" type="button" onclick="toggleSysPop()">说明</button>
+          <select class="chat-model" id="chatModel" onchange="onChatModelChange()">
+            <option value="claude-sonnet-5-5">Sonnet 5.5</option>
+            <option value="claude-opus-5-5">Opus 5.5</option>
+            <option value="claude-sonnet-4-6">Sonnet 4.6</option>
+          </select>
+          <span class="composer-spacer"></span>
+          <button class="stop-btn" id="stopBtn" type="button" onclick="stopClaude()" hidden>停止生成</button>
+          <button class="send-btn" id="sendBtn" type="button" onclick="sendComposer()">发送</button>
+        </div>
+      </div>
+      <div class="composer-hint">Enter 发送，Shift+Enter 换行。可以把文件拖进框里。只在这里聊天，不会发布。</div>
+    </div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="citeModal" style="display:none" onclick="if (event.target.id === 'citeModal') closeCiteModal()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">引用已生成的文章</div>
+      <button class="modal-close" type="button" onclick="closeCiteModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="import-hint">勾选一篇或几篇，它们会作为附件放进这条消息。原文不会被改。</div>
+      <div class="cite-list" id="citeList"></div>
+    </div>
+    <div class="modal-footer">
+      <div></div>
+      <div class="modal-btns">
+        <button class="modal-cancel" type="button" onclick="closeCiteModal()">取消</button>
+        <button class="modal-confirm" id="citeConfirm" type="button" onclick="confirmCite()">插入到这条消息</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="writeModal" style="display:none" onclick="if (event.target.id === 'writeModal') closeWriteback()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">把这篇写回哪篇文章</div>
+      <button class="modal-close" type="button" onclick="closeWriteback()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="import-hint">只会改你选中的那一篇。原来的稿子还在，可以恢复。</div>
+      <div class="cite-list" id="writeList"></div>
+    </div>
+    <div class="modal-footer">
+      <div></div>
+      <div class="modal-btns">
+        <button class="modal-cancel" type="button" onclick="closeWriteback()">取消</button>
+        <button class="modal-confirm" id="writeConfirm" type="button" onclick="confirmWriteback()">写回这篇文章</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ═══ 批量导入 Modal ═══ -->
@@ -945,17 +1120,11 @@ let taskSeq = 0;
 let courseDocs = {};       // {courseId: [{name, size, content}]} — 不持久化
 let activeViewId = null;   // 右侧当前显示哪个任务
 let isGenerating = false;  // 生成中标志，防止切换课程
-let chatMode = 'article';  // article：带上当前文章；general：不带文章
-let chatThreads = {};      // {key: {updated, messages:[{role, content}]}}
-let chatBusy = false;
-let chatStreamText = '';
-let chatNotice = '';
 
 // ============================================================
 // localStorage
 // ============================================================
 const LS_KEY = 'lanma_v3';
-const LS_CHAT = 'lanma_chat_v1';
 
 function saveToStorage() {
   const taskData = t => ({
@@ -1149,7 +1318,6 @@ function renderRightPanel() {
     emptyState.style.display = '';
     articleNav.style.display = 'none';
     resultCard.style.display = 'none';
-    renderChat();
     return;
   }
 
@@ -1177,7 +1345,7 @@ function renderRightPanel() {
 
   // 结果卡片
   const task = c?.tasks.find(t => t.id === activeViewId);
-  if (!task) { resultCard.style.display = 'none'; renderChat(); return; }
+  if (!task) { resultCard.style.display = 'none'; return; }
 
   resultCard.style.display = '';
   document.getElementById('singleTitle').textContent = task.title || '任务 ' + task.id;
@@ -1230,7 +1398,6 @@ function renderRightPanel() {
     textEl.style.display = 'none';
     copyBtn.disabled = true;
   }
-  renderChat();
 }
 
 // 切换当前查看的文章
@@ -1477,8 +1644,6 @@ function deleteTask(id) {
   if (c) c.tasks = c.tasks.filter(t => t.id !== id);
   document.getElementById('task_' + id)?.remove();
 
-  delete chatThreads[chatKeyFor(currentCourseId, id)];
-  saveChatStore();
   if (activeViewId === id) {
     const next = c?.tasks.find(t => t.status === 'done' || t.status === 'run');
     activeViewId = next?.id ?? null;
@@ -1705,7 +1870,6 @@ async function generateAll() {
   btn.textContent = '开始生成文章';
   renderCourseTabs();
   updateExportBtn();
-  renderChat();
 }
 
 async function readArticleStream(body, onText) {
@@ -1871,7 +2035,6 @@ async function retryTask(taskId) {
   document.getElementById('genBtn').textContent = '开始生成文章';
   renderCourseTabs();
   updateExportBtn();
-  renderChat();
 }
 
 // 接口停止原因优先；末尾标点用于补充判断。
@@ -1923,7 +2086,6 @@ async function continueTask() {
     document.getElementById('continueBtn').disabled = false;
     renderCourseTabs();
     updateExportBtn();
-    renderChat();
   }
 }
 
@@ -2103,10 +2265,6 @@ function importBackup(e) {
         }
       }
       courses.forEach(c => { if (!courseDocs[c.id]) courseDocs[c.id] = []; });
-      chatThreads = {};
-      chatMode = 'article';
-      chatNotice = '';
-      saveChatStore();
 
       saveToStorage();
       activeViewId = null;
@@ -2123,90 +2281,36 @@ function importBackup(e) {
 }
 
 // ============================================================
-// 和 Claude 改稿（复用现有 API 地址、Key、模型，不另存一把钥匙）
+// Claude 对话（独立页面，复用顶部已保存的地址、Key、模型）
 // ============================================================
-const CHAT_REPETITION_NOTE = [
-  '【已知的重复问题】',
-  '同一套提示词一次生成很多篇时，文章容易反复出现同一批套话。改稿时请换成只属于这一篇素材的新鲜说法，不要再套用：',
-  '- 用滥的比喻：方向盘/汽油、情绪镜子/阳光灿烂、生理死机、孩子是来渡我们的',
-  '- 反复出现的小标题：最熟悉的陌生人',
-  '- 为了凑词硬塞进去的动作：主动拿书、眼神变了、想摔东西、不吼不叫，以及同类词库',
-  '如果只是某几句重复，就只改那几句，留下文章里真正贴合素材的部分。',
-].join('\n');
+const CLAUDE_DB = 'lanma_claude';
+const CLAUDE_STORE = 'sessions';
+const CLAUDE_FALLBACK = 'lanma_claude_fallback';
+const CLAUDE_ACTIVE = 'lanma_claude_active';
+const HISTORY_CHAR_BUDGET = 100000;
 
-function chatKeyFor(courseId, taskId) {
-  return 'c' + courseId + ':t' + taskId;
+let appView = 'writer';
+let sessions = [];
+let sessionsLoaded = false;
+let activeSessionId = null;
+let composerFiles = [];
+let blankMeta = { systemNote: '', useCoursePrompt: false, model: '' };
+let chatStreaming = false;
+let chatAbort = null;
+let chatStreamText = '';
+let claudeDbPromise = null;
+let saveChain = Promise.resolve();
+
+function uid(prefix) {
+  return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
-function getActiveTask() {
-  const course = getCurrentCourse();
-  if (!course || activeViewId == null) return null;
-  return course.tasks.find(t => t.id === activeViewId) || null;
+function currentSession() {
+  return sessions.find(s => s.id === activeSessionId) || null;
 }
 
-function getChatTask() {
-  if (chatMode !== 'article') return null;
-  return getActiveTask();
-}
-
-function currentChatKey() {
-  const courseId = currentCourseId == null ? 'x' : currentCourseId;
-  if (chatMode === 'general') return 'c' + courseId + ':general';
-  const task = getChatTask();
-  return task ? chatKeyFor(courseId, task.id) : 'c' + courseId + ':none';
-}
-
-function chatMessages(key) {
-  const list = chatThreads[key]?.messages;
-  return Array.isArray(list) ? list : [];
-}
-
-function loadChatStore() {
-  try {
-    const raw = localStorage.getItem(LS_CHAT);
-    if (!raw) return;
-    const data = JSON.parse(raw);
-    if (data.mode === 'general' || data.mode === 'article') chatMode = data.mode;
-    if (data.threads && typeof data.threads === 'object') chatThreads = data.threads;
-  } catch (e) {}
-}
-
-function saveChatStore() {
-  const keys = Object.keys(chatThreads).sort((a, b) =>
-    (chatThreads[b]?.updated || 0) - (chatThreads[a]?.updated || 0));
-  const threads = {};
-  for (const key of keys.slice(0, 10)) {
-    const thread = chatThreads[key] || {};
-    const messages = (Array.isArray(thread.messages) ? thread.messages : []).slice(-20)
-      .map(m => ({
-        role: m.role === 'assistant' || m.role === 'note' ? m.role : 'user',
-        content: String(m.content || '').slice(0, 20000),
-      }))
-      .filter(m => m.content);
-    if (!messages.length) continue;
-    threads[key] = { updated: thread.updated || Date.now(), messages };
-  }
-  chatThreads = threads;
-  try {
-    localStorage.setItem(LS_CHAT, JSON.stringify({ mode: chatMode, threads }));
-    return true;
-  } catch (e) {}
-  const oldest = Object.keys(threads).sort((a, b) => (threads[a].updated || 0) - (threads[b].updated || 0));
-  while (oldest.length) {
-    delete threads[oldest.shift()];
-    try {
-      localStorage.setItem(LS_CHAT, JSON.stringify({ mode: chatMode, threads }));
-      chatThreads = threads;
-      return false;
-    } catch (err) {}
-  }
-  return false;
-}
-
-function missingApiReminder() {
-  const key = document.getElementById('apiKey')?.value.trim() || '';
-  if (getApiUrl() && getModel() && key) return '';
-  return '还不能聊天：请先在页面最上方填好 API 地址、API Key 和模型。改稿用的是这一套，不用再填第二把钥匙。';
+function meta() {
+  return currentSession() || blankMeta;
 }
 
 function clipText(text, max) {
@@ -2219,342 +2323,993 @@ function countHan(text) {
   return (String(text || '').match(/[\u4e00-\u9fff]/g) || []).length;
 }
 
-function revisionFloor(task) {
-  const original = countHan(task?.result || '');
-  if (!original) return 600;
-  return Math.max(400, Math.min(700, Math.floor(original * 0.45)));
-}
-
 function extractMarkedRevision(text) {
   const matched = String(text || '').match(/【修订全文】\s*([\s\S]*?)\s*【修订全文结束】/);
   if (!matched) return '';
-  return matched[1]
-    .replace(/^```(?:article|markdown|md|text)?\s*/i, '')
-    .replace(/\s*```$/, '')
-    .trim();
+  return matched[1].replace(/^```(?:article|markdown|md|text)?\s*/i, '').replace(/\s*```$/, '').trim();
 }
 
-function looksLikeFullArticle(text, task) {
-  const body = String(text || '').trim();
-  if (countHan(body) < revisionFloor(task)) return false;
-  const blocks = body.split(/\n\s*\n/).map(part => part.trim()).filter(Boolean);
-  if (blocks.length < 3) return false;
-  const first = (blocks[0].split('\n')[0] || '').replace(/^#+\s*/, '').replace(/\*/g, '').trim();
-  if (/^(可以|建议|我建议|下面|这里|问题|修改|有几|先说|整体|这段|这句|结尾|开头)/.test(first)) return false;
-  // 全文后面若还拖着一句短建议，说明这不是可以直接替换的正文。
-  const aside = blocks.slice(1).some(block =>
-    block.length < 50 && /^(不过|但是|另外|建议|我建议|可以|这里|注意|以上)/.test(block));
-  if (aside) return false;
-  const title = (task?.title || '').trim();
-  if (!title) return countHan(body) >= 800;
-  return first === title || first === '《' + title + '》';
-}
-
-// 只有完整修订稿才返回正文。单纯的建议返回空字符串，避免误替换。
-function extractRevision(text, task) {
-  if (!task) return '';
+function fullDraftText(text) {
   const marked = extractMarkedRevision(text);
-  if (marked) return countHan(marked) >= 200 ? marked : '';
-  const normalized = normalizeGeneratedArticle(String(text || '').trim(), task.title);
-  if (!looksLikeFullArticle(normalized, task)) return '';
-  return normalized.trim();
+  if (marked && countHan(marked) >= 180) return marked;
+  const body = String(text || '').trim();
+  if (countHan(body) < 400) return '';
+  const blocks = body.split(/\n\s*\n/).map(part => part.trim()).filter(Boolean);
+  if (blocks.length < 3) return '';
+  const first = (blocks[0].split('\n')[0] || '').trim();
+  if (/^(可以|建议|我建议|下面|这里|问题|修改|有几|先说|整体|这段|这句|结尾可以)/.test(first)) return '';
+  return body;
 }
 
-function latestRevision(task) {
-  if (!task || chatMode !== 'article') return '';
-  const messages = chatMessages(currentChatKey());
-  for (let i = messages.length - 1; i >= 0; i--) {
-    if (messages[i].role !== 'assistant' || !messages[i].content) continue;
-    const revision = extractRevision(messages[i].content, task);
-    if (!revision) continue;
-    if (revision === task.result) return '';
-    return revision;
-  }
-  return '';
-}
-
-function buildChatSystem(task) {
+function getActiveTask() {
   const course = getCurrentCourse();
-  const prompt = clipText((getLivePromptText() || course?.prompt || '').trim(), 8000);
+  if (!course || activeViewId == null) return null;
+  return course.tasks.find(t => t.id === activeViewId) || null;
+}
+
+function findTask(courseId, taskId) {
+  const course = courses.find(c => String(c.id) === String(courseId));
+  const task = course?.tasks.find(t => String(t.id) === String(taskId));
+  return task ? { course, task } : null;
+}
+
+function listDoneArticles() {
+  const rows = [];
+  for (const course of courses) {
+    for (const task of course.tasks || []) {
+      if (task.status === 'done' && task.result) rows.push({ course, task });
+    }
+  }
+  return rows;
+}
+
+function apiReminder() {
+  const key = document.getElementById('apiKey')?.value.trim() || '';
+  if (getApiUrl() && getModel() && key) return '';
+  return '还不能对话：请先回到「写文章」，在页面最上方填好 API 地址、API Key 和模型。这里用的是同一套，不用再填第二把钥匙。';
+}
+
+function buildSessionSystem(session) {
   const lines = [
-    '你是懒妈方宁的改稿助手，正在和 linda（小溪）对话。她不是程序员。请用简体中文，句子短、好懂，像一位坐在旁边帮她改文章的编辑，直接用「你」称呼她。',
-    '你只改草稿、讨论写法和提示词。不要建议发布，也不要提到小红书或任何平台的发布操作。',
-    '她常常只想改重复的句子、比喻、小标题或结尾。没让你重写全文时，只给建议或改那一段，不要输出整篇文章。',
-    '只有当她明确要求重写全文、换一整篇，或你给出的就是可以直接替换的完整文章时，才输出修订稿。',
-    '输出完整修订稿时，全文单独放在下面两行标记之间。标记外面最多用一两句人话说明改了什么。标记之间不要加代码围栏，不要写思考过程：',
-    '【修订全文】',
-    '（从标题开始的完整中文正文）',
-    '【修订全文结束】',
+    '你是 Claude。请用简体中文和 linda（小溪）自然对话。她不是程序员，把话说清楚、好懂。',
+    '只在对话里帮忙。不要建议把内容发布到小红书或任何平台。',
   ];
-  lines.push('', prompt
-    ? '【当前课程的专属提示词】写作时要遵守。如果她在讨论提示词本身，可以一起改措辞。\n' + prompt
-    : '【当前课程的专属提示词】这门课还没有写专属提示词。');
-  lines.push('', CHAT_REPETITION_NOTE);
-  if (task) {
-    lines.push(
-      '',
-      '【正在改的这篇文章】',
-      '标题：' + (task.title || '（无标题）'),
-      '素材：' + clipText(task.material || '（无素材）', 4000),
-      '当前正文：',
-      clipText(task.result || '（还没有正文）', 14000),
-    );
-  } else {
-    lines.push('', '【这次没有附带具体文章】请和她讨论提示词或写法。不要凭空编一篇完整文章，除非她明确要求看示例。示例如果是全文，仍用修订全文标记包起来。要替换某一篇已有文章时，请让她先点开那一篇。');
+  const note = (session?.systemNote || '').trim();
+  if (note) lines.push('', '【她给这段对话写的说明】', clipText(note, 4000));
+  if (session?.useCoursePrompt) {
+    const prompt = (getLivePromptText() || getCurrentCourse()?.prompt || '').trim();
+    lines.push('', '【当前课程的专属提示词】', prompt ? clipText(prompt, 8000) : '（这门课还没有写提示词）');
+    lines.push('', '如果她在改文章，避开这些用滥的说法：方向盘/汽油、情绪镜子/阳光灿烂、生理死机、孩子是来渡我们的、最熟悉的陌生人，以及主动拿书、眼神变了、想摔东西、不吼不叫。');
   }
   return lines.join('\n');
 }
 
-function chatApiMessages(messages) {
-  const api = [];
-  for (const message of messages || []) {
-    if ((message.role !== 'user' && message.role !== 'assistant') || !message.content) continue;
-    const prev = api[api.length - 1];
-    if (prev && prev.role === message.role) prev.content += '\n\n' + message.content;
-    else api.push({ role: message.role, content: String(message.content) });
+function toApiContent(message) {
+  let text = message.text || '';
+  for (const file of message.attachments || []) {
+    if (file.kind === 'article') {
+      text += `\n\n【文章：${file.title || file.name || '未命名'}】\n素材：${file.material || '（无）'}\n\n${file.text || ''}`;
+    } else if (file.kind === 'text') {
+      text += `\n\n【附件：${file.name || '文件'}】\n${file.text || ''}`;
+    }
   }
-  return api.slice(-12);
-}
-
-function chatContextText(task) {
-  if (isGenerating) return '文章正在生成，写完再聊。';
-  if (chatMode === 'general') return '自由讨论，不带文章。适合商量提示词怎么写，或者怎样避开重复的比喻。';
-  if (!task) return '还没选中文章。在左边点开一篇「已完成」的，或改选「不带文章」。';
-  const title = task.title || ('任务 ' + task.id);
-  if (!task.result) return '已选中「' + title + '」，但这篇还没有正文。可以先生成，也可以先聊聊标题和素材。';
-  return '正在改「' + title + '」。可以直接说哪里重复、哪里别扭。';
-}
-
-function displayChatText(content) {
-  const raw = String(content || '');
-  if (!raw.includes('【修订全文】')) return raw;
-  const marked = extractMarkedRevision(raw);
-  if (!marked) return raw;
-  const note = raw.replace(/【修订全文】[\s\S]*?【修订全文结束】/, '').trim();
-  return note ? note + '\n\n' + marked : marked;
-}
-
-function appendChatBubble(log, message, streaming) {
-  const role = message.role === 'user' ? 'user' : message.role === 'note' ? 'note' : 'assistant';
-  const bubble = document.createElement('div');
-  bubble.className = 'chat-msg ' + role;
-  const who = document.createElement('div');
-  who.className = 'who';
-  who.textContent = role === 'user' ? '我' : role === 'note' ? '提示' : 'Claude';
-  const body = document.createElement('div');
-  body.className = 'chat-body';
-  if (streaming) body.id = 'chatStreamBody';
-  body.textContent = streaming ? (chatStreamText || '正在回复…') : displayChatText(message.content);
-  bubble.appendChild(who);
-  bubble.appendChild(body);
-  log.appendChild(bubble);
-  if (streaming && chatStreamText) {
-    const cursor = document.createElement('span');
-    cursor.className = 'cursor';
-    body.appendChild(cursor);
+  const images = (message.attachments || []).filter(file => file.kind === 'image' && file.data);
+  if (!images.length) return text;
+  const blocks = [];
+  if (text.trim()) blocks.push({ type: 'text', text });
+  for (const image of images) {
+    blocks.push({
+      type: 'image',
+      source: { type: 'base64', media_type: image.mediaType || 'image/png', data: image.data },
+    });
   }
+  return blocks.length ? blocks : text;
 }
 
-function paintStreaming(text) {
-  const body = document.getElementById('chatStreamBody');
-  if (!body) return;
-  body.textContent = text || '正在回复…';
-  const cursor = document.createElement('span');
-  cursor.className = 'cursor';
-  body.appendChild(cursor);
-  const log = document.getElementById('chatLog');
-  if (log) log.scrollTop = log.scrollHeight || 0;
+function messagesForApi(session) {
+  const all = (session?.messages || []).filter(m => (m.role === 'user' || m.role === 'assistant') && (m.text || (m.attachments || []).length) && !m.error);
+  let chosen = all.slice();
+  const pack = list => list.map(m => ({ role: m.role, content: toApiContent(m) }));
+  while (chosen.length > 2 && JSON.stringify(pack(chosen)).length > HISTORY_CHAR_BUDGET) chosen = chosen.slice(2);
+  return { api: pack(chosen), dropped: all.length - chosen.length };
 }
 
-function renderChat() {
-  const log = document.getElementById('chatLog');
-  const context = document.getElementById('chatContext');
-  if (!log || !context) return;
-  const task = getChatTask();
-  const activeTask = getActiveTask();
-  context.textContent = chatContextText(task);
-  document.getElementById('chatModeArticle').className = 'chat-mode' + (chatMode === 'article' ? ' active' : '');
-  document.getElementById('chatModeGeneral').className = 'chat-mode' + (chatMode === 'general' ? ' active' : '');
-
-  const reminder = missingApiReminder();
-  const warn = document.getElementById('chatWarn');
-  warn.style.display = reminder ? '' : 'none';
-  warn.textContent = reminder;
-
-  log.textContent = '';
-  for (const message of chatMessages(currentChatKey())) appendChatBubble(log, message, false);
-  if (chatBusy) appendChatBubble(log, { role: 'assistant', content: '' }, true);
-  log.scrollTop = log.scrollHeight || 0;
-
-  const revision = !chatBusy && task ? latestRevision(task) : '';
-  const replaceNote = document.getElementById('replaceNote');
-  const replaceBtn = document.getElementById('replaceBtn');
-  replaceBtn.style.display = revision ? '' : 'none';
-  replaceNote.style.display = revision ? '' : 'none';
-  replaceNote.textContent = revision
-    ? '上面有一整篇修订稿。只有点「用这篇替换原稿」才会换掉文章，原来的稿子可以再恢复。'
-    : '';
-  const showUndo = !!(activeTask && activeTask.hasPrev) && !isGenerating;
-  document.getElementById('undoReplaceBtn').style.display = showUndo ? '' : 'none';
-
-  const notice = document.getElementById('chatNotice');
-  notice.style.display = chatNotice ? '' : 'none';
-  notice.textContent = chatNotice;
-  document.getElementById('chatActions').style.display = (revision || showUndo || chatNotice) ? 'flex' : 'none';
-
-  const sendBtn = document.getElementById('chatSendBtn');
-  sendBtn.disabled = chatBusy || isGenerating || !!reminder;
-  sendBtn.textContent = chatBusy ? '正在回复…' : '发送';
-  document.getElementById('chatHint').textContent = isGenerating
-    ? '文章正在生成，写完再聊。只改草稿，不会发布。'
-    : 'Enter 发送，Shift+Enter 换行。只改草稿，不会发布。';
+function sessionModel(session) {
+  return (session && session.model) || document.getElementById('chatModel')?.value || getModel() || DEFAULT_MODEL;
 }
 
-function setChatMode(mode) {
-  if (chatBusy) return;
-  chatMode = mode === 'general' ? 'general' : 'article';
-  chatNotice = '';
-  saveChatStore();
-  renderChat();
+function extractNonStreamText(data) {
+  if (!data) return '';
+  if (Array.isArray(data.content)) return data.content.map(block => block.text || '').join('');
+  if (typeof data.content === 'string') return data.content;
+  const choice = data.choices?.[0]?.message?.content;
+  return typeof choice === 'string' ? choice : '';
 }
 
-function startNewChat() {
-  if (chatBusy) return;
-  if (chatMode === 'article' && !getChatTask()) {
-    alert('请先在左边点开一篇文章，或改选「不带文章」。');
-    return;
-  }
-  const key = currentChatKey();
-  const hasTalk = chatMessages(key).some(m => m.role === 'user' || m.role === 'assistant');
-  if (hasTalk && !confirm('清空这段对话？文章正文不会被改掉。')) return;
-  delete chatThreads[key];
-  chatNotice = '';
-  saveChatStore();
-  renderChat();
-}
-
-function onChatKeydown(e) {
-  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
-    e.preventDefault();
-    sendChat();
-  }
-}
-
-async function requestChat(system, messages, onText) {
+async function requestClaude(system, messages, onText, signal) {
   const apiKey = document.getElementById('apiKey').value.trim();
+  const model = sessionModel(currentSession());
   const resp = await fetch(getApiUrl(), {
     method: 'POST',
+    signal,
     headers: {
       'Content-Type': 'application/json',
       'x-api-key': apiKey,
-      'Authorization': `Bearer ${apiKey}`,
+      'Authorization': 'Bearer ' + apiKey,
       'anthropic-version': '2023-06-01',
     },
-    body: JSON.stringify({
-      model: getModel(),
-      max_tokens: 12000,
-      stream: true,
-      system,
-      messages,
-    }),
+    body: JSON.stringify({ model, max_tokens: 12000, stream: true, system, messages }),
   });
   if (!resp.ok) {
     const err = await resp.json().catch(() => ({}));
     throw new Error(err.error?.message || ('HTTP ' + resp.status));
   }
-  if (!resp.body) throw new Error('未收到回复');
-  return await readArticleStream(resp.body, onText);
+  const type = (resp.headers.get('content-type') || '').toLowerCase();
+  if (!resp.body || type.includes('application/json')) {
+    const data = await resp.json();
+    const text = extractNonStreamText(data);
+    if (onText) onText(text);
+    return { text, stopReason: data.stop_reason || '' };
+  }
+  return readArticleStream(resp.body, onText || (() => {}));
 }
 
-async function sendChat() {
-  if (chatBusy) return;
-  if (isGenerating) {
-    alert('文章正在生成，请等这一篇写完再聊天。');
+function claudeDb() {
+  if (!claudeDbPromise) {
+    claudeDbPromise = new Promise((resolve, reject) => {
+      if (typeof indexedDB === 'undefined') { reject(new Error('no idb')); return; }
+      const req = indexedDB.open(CLAUDE_DB, 1);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(CLAUDE_STORE)) db.createObjectStore(CLAUDE_STORE, { keyPath: 'id' });
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  return claudeDbPromise;
+}
+
+function stripImages(session) {
+  return {
+    ...session,
+    messages: (session.messages || []).map(message => ({
+      ...message,
+      attachments: (message.attachments || []).map(file => file.kind === 'image'
+        ? { kind: 'image', name: file.name, mediaType: file.mediaType, omitted: true }
+        : file),
+    })),
+  };
+}
+
+async function idbPut(session) {
+  const db = await claudeDb();
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(CLAUDE_STORE, 'readwrite');
+    tx.objectStore(CLAUDE_STORE).put(session);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function idbDelete(id) {
+  const db = await claudeDb();
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(CLAUDE_STORE, 'readwrite');
+    tx.objectStore(CLAUDE_STORE).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+function fallbackSaveAll() {
+  try {
+    const light = sessions.slice(0, 20).map(stripImages);
+    localStorage.setItem(CLAUDE_FALLBACK, JSON.stringify(light));
+  } catch (e) {}
+}
+
+function rememberSession(session) {
+  session.updated = Date.now();
+  const index = sessions.findIndex(item => item.id === session.id);
+  if (index >= 0) sessions[index] = session;
+  else sessions.unshift(session);
+  sessions.sort((a, b) => (b.updated || 0) - (a.updated || 0));
+  if (sessions.length > 30) {
+    const dropped = sessions.slice(30);
+    sessions = sessions.slice(0, 30);
+    dropped.forEach(item => { idbDelete(item.id).catch(() => {}); });
+  }
+  try { localStorage.setItem(CLAUDE_ACTIVE, activeSessionId || ''); } catch (e) {}
+  saveChain = saveChain.then(() => idbPut(session)).catch(() => fallbackSaveAll());
+  return saveChain;
+}
+
+function loadClaudeSessions() {
+  return loadClaudeSessionsAsync().catch(() => {});
+}
+
+async function loadClaudeSessionsAsync() {
+  let loaded = [];
+  try {
+    const db = await claudeDb();
+    loaded = await new Promise((resolve, reject) => {
+      const tx = db.transaction(CLAUDE_STORE, 'readonly');
+      const req = tx.objectStore(CLAUDE_STORE).getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+  } catch (e) {
+    try { loaded = JSON.parse(localStorage.getItem(CLAUDE_FALLBACK) || '[]'); } catch (err) { loaded = []; }
+  }
+  sessions = (Array.isArray(loaded) ? loaded : []).sort((a, b) => (b.updated || 0) - (a.updated || 0));
+  sessionsLoaded = true;
+  const savedId = localStorage.getItem(CLAUDE_ACTIVE);
+  if (savedId && sessions.some(s => s.id === savedId)) activeSessionId = savedId;
+  if (appView === 'chat') renderClaude();
+}
+
+function showAppView(view) {
+  appView = view === 'chat' ? 'chat' : 'writer';
+  const writer = document.getElementById('writerView');
+  const chat = document.getElementById('chatView');
+  if (writer) writer.hidden = appView !== 'writer';
+  if (chat) chat.hidden = appView !== 'chat';
+  document.getElementById('navWriter')?.classList.toggle('active', appView === 'writer');
+  document.getElementById('navChat')?.classList.toggle('active', appView === 'chat');
+  document.body.classList.toggle('in-chat', appView === 'chat');
+  if (appView === 'chat') {
+    if (!sessionsLoaded) loadClaudeSessions();
+    const select = document.getElementById('chatModel');
+    if (select) select.value = sessionModel(currentSession());
+    renderClaude();
+    document.getElementById('composerInput')?.focus();
+  }
+}
+
+function toggleChatSide() {
+  document.getElementById('chatSide')?.classList.toggle('open');
+  document.getElementById('sideMask')?.classList.toggle('show');
+}
+
+function closeChatSide() {
+  document.getElementById('chatSide')?.classList.remove('open');
+  document.getElementById('sideMask')?.classList.remove('show');
+}
+
+function newClaudeChat() {
+  if (chatStreaming) return;
+  activeSessionId = null;
+  blankMeta = { systemNote: '', useCoursePrompt: false, model: getModel() || DEFAULT_MODEL };
+  composerFiles = [];
+  const input = document.getElementById('composerInput');
+  if (input) input.value = '';
+  closeChatSide();
+  renderClaude();
+  input?.focus();
+}
+
+function openSession(id) {
+  if (chatStreaming) return;
+  activeSessionId = id;
+  try { localStorage.setItem(CLAUDE_ACTIVE, id); } catch (e) {}
+  closeChatSide();
+  renderClaude();
+}
+
+function renameSession(id) {
+  const session = sessions.find(s => s.id === id);
+  if (!session) return;
+  const name = prompt('对话名称', session.title || '');
+  if (!name || !name.trim()) return;
+  session.title = name.trim().slice(0, 40);
+  session.titleAuto = false;
+  rememberSession(session);
+  renderClaude();
+}
+
+function deleteSession(id) {
+  const session = sessions.find(s => s.id === id);
+  if (!session) return;
+  if (!confirm('删除这段对话？文章本身不会被删。')) return;
+  sessions = sessions.filter(s => s.id !== id);
+  if (activeSessionId === id) activeSessionId = null;
+  idbDelete(id).catch(() => fallbackSaveAll());
+  renderClaude();
+}
+
+function autoTitle(text, files) {
+  const line = String(text || '').replace(/\s+/g, ' ').trim();
+  if (line) return line.length > 18 ? line.slice(0, 18) + '…' : line;
+  if (files && files.length) return files[0].title || files[0].name || '附件对话';
+  return '新对话';
+}
+
+function renderSessionList() {
+  const list = document.getElementById('sessionList');
+  if (!list) return;
+  list.textContent = '';
+  if (!sessions.length) {
+    const empty = document.createElement('div');
+    empty.className = 'session-empty';
+    empty.textContent = '还没有对话。发送第一条消息后，会出现在这里。';
+    list.appendChild(empty);
     return;
   }
-  const input = document.getElementById('chatInput');
+  for (const session of sessions) {
+    const row = document.createElement('div');
+    row.className = 'session-item' + (session.id === activeSessionId ? ' active' : '');
+    row.onclick = () => openSession(session.id);
+    const title = document.createElement('div');
+    title.className = 'session-title';
+    title.textContent = session.title || '新对话';
+    title.title = session.title || '';
+    const rename = document.createElement('button');
+    rename.type = 'button';
+    rename.className = 'session-mini';
+    rename.textContent = '改名';
+    rename.onclick = (event) => { event.stopPropagation(); renameSession(session.id); };
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'session-mini';
+    remove.textContent = '删除';
+    remove.onclick = (event) => { event.stopPropagation(); deleteSession(session.id); };
+    row.appendChild(title);
+    row.appendChild(rename);
+    row.appendChild(remove);
+    list.appendChild(row);
+  }
+}
+
+function sanitizeHtml(html) {
+  const template = document.createElement('template');
+  template.innerHTML = html;
+  const root = template.content || template;
+  root.querySelectorAll('script, iframe, object, embed, link, meta').forEach(el => el.remove());
+  root.querySelectorAll('*').forEach(el => {
+    [...el.attributes].forEach(attr => {
+      if (/^on/i.test(attr.name) || attr.name === 'srcdoc') el.removeAttribute(attr.name);
+      if ((attr.name === 'href' || attr.name === 'src') && /^\s*javascript:/i.test(attr.value)) el.removeAttribute(attr.name);
+    });
+  });
+  const holder = document.createElement('div');
+  holder.appendChild(root.cloneNode ? root.cloneNode(true) : root);
+  return holder.innerHTML;
+}
+
+function enhanceCodeBlocks(container) {
+  container.querySelectorAll('pre').forEach(pre => {
+    if (pre.parentElement && pre.parentElement.classList.contains('code-wrap')) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'code-wrap';
+    pre.parentNode.insertBefore(wrap, pre);
+    wrap.appendChild(pre);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'code-copy';
+    button.textContent = '复制';
+    button.onclick = async () => {
+      const code = pre.innerText || '';
+      try { await navigator.clipboard.writeText(code); button.textContent = '已复制'; }
+      catch (e) { button.textContent = '请手动复制'; }
+      setTimeout(() => { button.textContent = '复制'; }, 1500);
+    };
+    wrap.appendChild(button);
+  });
+}
+
+function renderMarkdown(text) {
+  const raw = (typeof marked !== 'undefined' && marked.parse) ? marked.parse(text || '') : escAttr(text || '');
+  return sanitizeHtml(raw);
+}
+
+function messagePlain(message) {
+  return message.text || '';
+}
+
+async function copyMessage(id) {
+  const session = currentSession();
+  const message = session?.messages.find(item => item.id === id);
+  if (!message) return;
+  try { await navigator.clipboard.writeText(messagePlain(message)); }
+  catch (e) { alert('请手动选中文字复制'); }
+}
+
+function attachmentLabel(file) {
+  if (file.kind === 'article') return '文章 · ' + (file.title || file.name || '未命名');
+  if (file.kind === 'image') return '图片 · ' + (file.name || 'image');
+  return '文件 · ' + (file.name || '附件');
+}
+
+function appendMessageNode(parent, message) {
+  const article = document.createElement('article');
+  article.className = 'msg ' + (message.role === 'user' ? 'user' : 'assistant');
+  article.dataset.id = message.id;
+  const role = document.createElement('div');
+  role.className = 'msg-role';
+  role.textContent = message.role === 'user' ? '我' : 'Claude';
+  article.appendChild(role);
+  if (message.attachments && message.attachments.length) {
+    const row = document.createElement('div');
+    row.className = 'attach-row';
+    for (const file of message.attachments) {
+      const chip = document.createElement('span');
+      chip.className = 'attach-chip';
+      chip.textContent = attachmentLabel(file);
+      row.appendChild(chip);
+    }
+    article.appendChild(row);
+  }
+  if (message.role === 'assistant' && !message.error) {
+    const body = document.createElement('div');
+    body.className = 'msg-body';
+    body.innerHTML = renderMarkdown(message.text || '');
+    enhanceCodeBlocks(body);
+    article.appendChild(body);
+  } else {
+    const body = document.createElement('div');
+    body.className = 'msg-text';
+    body.textContent = message.text || (message.error ? ('没有收到回复：' + message.error) : '');
+    article.appendChild(body);
+  }
+  const actions = document.createElement('div');
+  actions.className = 'msg-actions';
+  if (message.role === 'user') {
+    actions.appendChild(actionButton('复制', () => copyMessage(message.id)));
+    actions.appendChild(actionButton('编辑', () => editUserMessage(message.id)));
+  } else if (!message.error) {
+    actions.appendChild(actionButton('复制', () => copyMessage(message.id)));
+    actions.appendChild(actionButton('重新生成', () => regenerateMessage(message.id)));
+    const draft = fullDraftText(message.text || '');
+    if (draft) {
+      const write = actionButton(message.applied ? '撤销写回' : '把这篇写回某篇文章', () => {
+        if (message.applied) undoWriteback(message.id);
+        else openWriteback(message.id);
+      });
+      write.classList.add('writeback-btn');
+      actions.appendChild(write);
+    }
+  } else {
+    actions.appendChild(actionButton('重试', () => regenerateMessage(message.id)));
+  }
+  article.appendChild(actions);
+  parent.appendChild(article);
+}
+
+function actionButton(label, onClick) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'msg-action';
+  button.textContent = label;
+  button.onclick = onClick;
+  return button;
+}
+
+function renderMessages() {
+  const stream = document.getElementById('chatStream');
+  if (!stream) return;
+  stream.textContent = '';
+  const session = currentSession();
+  const top = document.getElementById('chatTopTitle');
+  if (top) top.textContent = session?.title || '新对话';
+  if (!session || !session.messages.length) {
+    const hero = document.createElement('div');
+    hero.className = 'chat-hero';
+    hero.innerHTML = '<h2>今天想聊什么？</h2><p>像平时聊天一样提问。也可以把文件拖进输入框，或引用已经生成的文章。</p>';
+    stream.appendChild(hero);
+    return;
+  }
+  for (const message of session.messages) appendMessageNode(stream, message);
+  if (chatStreaming) appendStreamBubble(stream);
+  const scroller = document.getElementById('chatScroll');
+  if (scroller) scroller.scrollTop = scroller.scrollHeight;
+}
+
+function appendStreamBubble(parent) {
+  const article = document.createElement('article');
+  article.className = 'msg assistant';
+  const role = document.createElement('div');
+  role.className = 'msg-role';
+  role.textContent = 'Claude';
+  const body = document.createElement('div');
+  body.id = 'streamBody';
+  body.className = 'msg-text';
+  body.textContent = chatStreamText || '正在回复…';
+  article.appendChild(role);
+  article.appendChild(body);
+  parent.appendChild(article);
+}
+
+function paintClaudeStream(text) {
+  chatStreamText = text || '';
+  const body = document.getElementById('streamBody');
+  if (!body) return;
+  body.textContent = chatStreamText || '正在回复…';
+  const cursor = document.createElement('span');
+  cursor.className = 'cursor';
+  body.appendChild(cursor);
+  const scroller = document.getElementById('chatScroll');
+  if (scroller) scroller.scrollTop = scroller.scrollHeight;
+}
+
+function renderAttachRow() {
+  const row = document.getElementById('attachRow');
+  if (!row) return;
+  row.textContent = '';
+  composerFiles.forEach((file, index) => {
+    const chip = document.createElement('span');
+    chip.className = 'attach-chip';
+    const name = document.createElement('span');
+    name.textContent = attachmentLabel(file);
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.textContent = '×';
+    remove.onclick = () => { composerFiles.splice(index, 1); renderAttachRow(); };
+    chip.appendChild(name);
+    chip.appendChild(remove);
+    row.appendChild(chip);
+  });
+}
+
+function updateChrome() {
+  const reminder = apiReminder();
+  const warn = document.getElementById('chatWarn');
+  if (warn) {
+    warn.hidden = !reminder;
+    warn.textContent = reminder;
+  }
+  const session = currentSession();
+  const info = messagesForApi(session || { messages: [] });
+  const note = document.getElementById('historyNote');
+  if (note) {
+    note.hidden = !info.dropped;
+    note.textContent = info.dropped ? '对话比较长，更早的 ' + info.dropped + ' 条这次不会一起发给 Claude。可以新开一段对话。' : '';
+  }
+  const send = document.getElementById('sendBtn');
+  const stop = document.getElementById('stopBtn');
+  if (send) {
+    send.hidden = chatStreaming;
+    send.disabled = !!reminder;
+  }
+  if (stop) stop.hidden = !chatStreaming;
+  const select = document.getElementById('chatModel');
+  const model = sessionModel(session);
+  if (select && select.value !== model) select.value = model;
+  const sys = document.getElementById('sysNote');
+  const useCourse = document.getElementById('useCourse');
+  const state = meta();
+  if (sys && document.activeElement !== sys) sys.value = state.systemNote || '';
+  if (useCourse) useCourse.checked = !!state.useCoursePrompt;
+  const hint = document.getElementById('courseHint');
+  if (hint) {
+    const course = getCurrentCourse();
+    hint.textContent = useCourse && useCourse.checked
+      ? ('将带上课程「' + (course?.name || '当前课程') + '」的专属提示词。')
+      : '默认不带课程提示词，就像普通对话。';
+  }
+  renderAttachRow();
+}
+
+function renderClaude() {
+  if (!document.getElementById('chatView')) return;
+  renderSessionList();
+  if (!chatStreaming) renderMessages();
+  updateChrome();
+}
+
+function onChatModelChange() {
+  const model = document.getElementById('chatModel').value;
+  const session = currentSession();
+  if (session) { session.model = model; rememberSession(session); }
+  else blankMeta.model = model;
+  const globalSelect = document.getElementById('modelInput');
+  if (globalSelect) globalSelect.value = model;
+  try { localStorage.setItem(LS_MODEL, model); } catch (e) {}
+}
+
+function onSysNoteInput() {
+  const value = document.getElementById('sysNote').value;
+  const session = currentSession();
+  if (session) { session.systemNote = value; rememberSession(session); }
+  else blankMeta.systemNote = value;
+}
+
+function onUseCourseChange() {
+  const checked = !!document.getElementById('useCourse').checked;
+  const session = currentSession();
+  if (session) { session.useCoursePrompt = checked; rememberSession(session); }
+  else blankMeta.useCoursePrompt = checked;
+  updateChrome();
+}
+
+function toggleSysPop() {
+  const pop = document.getElementById('sysPop');
+  if (pop) pop.hidden = !pop.hidden;
+}
+
+function growComposer() {
+  const input = document.getElementById('composerInput');
   if (!input) return;
-  const text = input.value.trim();
-  if (!text) return;
-  if (text.length > 8000) {
-    alert('这条太长了。可以分成几次说，一次尽量别超过一大段。');
-    return;
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 200) + 'px';
+}
+
+function onComposerKeydown(event) {
+  if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
+    event.preventDefault();
+    sendComposer();
   }
-  const reminder = missingApiReminder();
+}
+
+function onComposerDrag(event) {
+  event.preventDefault();
+  document.getElementById('composer')?.classList.add('drag');
+}
+
+function onComposerDragLeave(event) {
+  event.preventDefault();
+  document.getElementById('composer')?.classList.remove('drag');
+}
+
+function onComposerDrop(event) {
+  event.preventDefault();
+  document.getElementById('composer')?.classList.remove('drag');
+  if (event.dataTransfer?.files) addComposerFiles(event.dataTransfer.files);
+}
+
+function onComposerPaste(event) {
+  const items = event.clipboardData?.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type && item.type.startsWith('image/')) {
+      const file = item.getAsFile();
+      if (file) {
+        event.preventDefault();
+        addComposerFiles([file]);
+      }
+    }
+  }
+}
+
+function onAttachPick(event) {
+  addComposerFiles(event.target.files);
+  event.target.value = '';
+}
+
+async function addComposerFiles(fileList) {
+  for (const file of Array.from(fileList || [])) {
+    try {
+      const ext = (file.name.split('.').pop() || '').toLowerCase();
+      if (file.type.startsWith('image/') || ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext)) {
+        composerFiles.push(await fileToImage(file));
+      } else if (['txt', 'md', 'csv', 'tsv', 'docx', 'doc', 'xlsx', 'xls'].includes(ext)) {
+        const text = await fileToAttachmentText(file);
+        composerFiles.push({ kind: 'text', name: file.name, text: clipText(text, 80000) });
+      } else {
+        alert('这个格式还不能读：' + file.name + '\n可以用 txt、md、docx、xlsx、csv，或图片。');
+      }
+    } catch (err) {
+      alert('读取失败：' + file.name + '\n' + (err.message || ''));
+    }
+  }
+  renderAttachRow();
+}
+
+function fileToImage(file) {
+  return new Promise((resolve, reject) => {
+    if (file.size > 3 * 1024 * 1024) { reject(new Error('图片请小于 3MB')); return; }
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('读取失败'));
+    reader.onload = () => {
+      const url = String(reader.result || '');
+      const matched = url.match(/^data:(.*?);base64,(.*)$/);
+      if (!matched) { reject(new Error('读不到图片')); return; }
+      resolve({ kind: 'image', name: file.name || '图片', mediaType: matched[1] || file.type || 'image/png', data: matched[2] });
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function fileToAttachmentText(file) {
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  if (ext === 'docx' || ext === 'doc') return readDocx(file);
+  if (ext === 'xlsx' || ext === 'xls') {
+    if (typeof XLSX === 'undefined') throw new Error('表格解析还没准备好，请刷新后再试');
+    const book = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+    return book.SheetNames.map(name => {
+      const rows = XLSX.utils.sheet_to_json(book.Sheets[name], { header: 1, defval: '' });
+      return rows.map(row => row.join('\t')).join('\n');
+    }).join('\n\n');
+  }
+  return await file.text();
+}
+
+function createSession() {
+  const session = {
+    id: uid('s'),
+    title: '新对话',
+    titleAuto: true,
+    created: Date.now(),
+    updated: Date.now(),
+    model: blankMeta.model || getModel() || DEFAULT_MODEL,
+    useCoursePrompt: !!blankMeta.useCoursePrompt,
+    systemNote: blankMeta.systemNote || '',
+    messages: [],
+  };
+  sessions.unshift(session);
+  activeSessionId = session.id;
+  blankMeta = { systemNote: '', useCoursePrompt: false, model: '' };
+  return session;
+}
+
+async function sendComposer() {
+  if (chatStreaming) return;
+  const input = document.getElementById('composerInput');
+  const text = (input?.value || '').trim();
+  if (!text && !composerFiles.length) return;
+  const reminder = apiReminder();
   if (reminder) { alert(reminder); return; }
   const apiKey = document.getElementById('apiKey').value.trim();
   if (!/^[\x00-\xFF]*$/.test(apiKey)) {
     alert('API Key 含有非法字符（如中文），请检查后重新粘贴正确的 API Key');
     return;
   }
-  const task = chatMode === 'article' ? getChatTask() : null;
-  if (chatMode === 'article' && !task) {
-    alert('请先在左边点开一篇文章，或改选「不带文章」。');
-    return;
-  }
+  let session = currentSession();
+  if (!session) session = createSession();
+  const message = {
+    id: uid('m'),
+    role: 'user',
+    text,
+    attachments: composerFiles,
+  };
+  composerFiles = [];
+  if (input) { input.value = ''; input.style.height = 'auto'; }
+  if (session.titleAuto && session.messages.length === 0) session.title = autoTitle(text, message.attachments);
+  session.messages.push(message);
+  session.model = session.model || sessionModel(session);
+  await askClaude(session);
+}
 
-  const key = currentChatKey();
-  const thread = chatThreads[key] || { messages: [] };
-  thread.messages = chatMessages(key).slice();
-  thread.messages.push({ role: 'user', content: text });
-  if (thread.messages.length > 20) thread.messages = thread.messages.slice(-20);
-  thread.updated = Date.now();
-  chatThreads[key] = thread;
-  input.value = '';
-  chatNotice = '';
+async function regenerateMessage(id) {
+  if (chatStreaming) return;
+  const session = currentSession();
+  if (!session) return;
+  const index = session.messages.findIndex(item => item.id === id);
+  if (index < 0) return;
+  let cut = index;
+  if (session.messages[index].role === 'assistant') cut = index;
+  else cut = index + 1;
+  session.messages = session.messages.slice(0, session.messages[index].role === 'user' ? index + 1 : index);
+  if (!session.messages.length || session.messages[session.messages.length - 1].role !== 'user') return;
+  await askClaude(session);
+}
+
+function editUserMessage(id) {
+  if (chatStreaming) return;
+  const node = document.querySelector('.msg[data-id="' + id + '"]');
+  const session = currentSession();
+  const message = session?.messages.find(item => item.id === id);
+  if (!node || !message) return;
+  const box = document.createElement('textarea');
+  box.className = 'msg-edit';
+  box.value = message.text || '';
+  const save = actionButton('发送', () => resendEdited(id, box.value));
+  const cancel = actionButton('取消', () => renderMessages());
+  node.textContent = '';
+  node.appendChild(box);
+  const actions = document.createElement('div');
+  actions.className = 'msg-actions';
+  actions.appendChild(save);
+  actions.appendChild(cancel);
+  node.appendChild(actions);
+  box.focus();
+}
+
+async function resendEdited(id, value) {
+  const session = currentSession();
+  if (!session) return;
+  const index = session.messages.findIndex(item => item.id === id);
+  if (index < 0) return;
+  const text = String(value || '').trim();
+  if (!text && !(session.messages[index].attachments || []).length) return;
+  session.messages[index].text = text;
+  session.messages = session.messages.slice(0, index + 1);
+  await askClaude(session);
+}
+
+async function askClaude(session) {
+  const reminder = apiReminder();
+  if (reminder) { alert(reminder); return; }
+  const packed = messagesForApi(session);
+  if (!packed.api.length) return;
+  chatStreaming = true;
   chatStreamText = '';
-  chatBusy = true;
-  renderChat();
-
+  renderSessionList();
+  renderMessages();
+  updateChrome();
+  const controller = new AbortController();
+  chatAbort = controller;
+  let reply = '';
   try {
-    const output = await requestChat(
-      buildChatSystem(task),
-      chatApiMessages(thread.messages),
-      (full) => { chatStreamText = full; paintStreaming(full); }
-    );
-    const reply = (output?.text || '').trim();
-    if (!reply) throw new Error(output?.streamError || '没有收到回复');
-    thread.messages.push({ role: 'assistant', content: reply });
-    if (output.streamError) thread.messages.push({ role: 'note', content: '回复可能不完整：' + output.streamError });
-    thread.updated = Date.now();
-  } catch (err) {
-    if (!input.value.trim()) {
-      thread.messages.pop();
-      input.value = text;
+    const output = await requestClaude(buildSessionSystem(session), packed.api, (full) => {
+      reply = full;
+      paintClaudeStream(full);
+    }, controller.signal);
+    reply = (output?.text || reply || '').trim();
+    if (controller.signal.aborted) {
+      if (reply) session.messages.push({ id: uid('m'), role: 'assistant', text: reply, stopped: true });
+    } else if (!reply) {
+      session.messages.push({ id: uid('m'), role: 'assistant', text: '', error: output?.streamError || '没有收到回复' });
+    } else {
+      session.messages.push({ id: uid('m'), role: 'assistant', text: reply });
     }
-    thread.messages.push({ role: 'note', content: '没有收到回复：' + (err.message || '请再试一次') });
-    thread.updated = Date.now();
+  } catch (err) {
+    if (err?.name === 'AbortError' || controller.signal.aborted) {
+      if (reply.trim()) session.messages.push({ id: uid('m'), role: 'assistant', text: reply.trim(), stopped: true });
+    } else {
+      session.messages.push({ id: uid('m'), role: 'assistant', text: '', error: err.message || '请再试一次' });
+    }
   } finally {
-    chatBusy = false;
+    chatStreaming = false;
+    chatAbort = null;
     chatStreamText = '';
-    if (thread.messages.length > 20) thread.messages = thread.messages.slice(-20);
-    if (!saveChatStore()) chatNotice = '这段对话没能记住，刷新后可能消失。文章本身还在。';
-    renderChat();
+    await rememberSession(session);
+    renderClaude();
   }
 }
 
-function applyChatRevision() {
-  if (chatBusy || isGenerating) return;
-  const task = getChatTask();
-  if (!task) return;
-  const revision = latestRevision(task);
-  if (!revision || revision === task.result) return;
+function stopClaude() {
+  if (chatAbort) chatAbort.abort();
+}
+
+function openCiteModal() {
+  const list = document.getElementById('citeList');
+  const rows = listDoneArticles();
+  list.textContent = '';
+  if (!rows.length) {
+    list.textContent = '还没有生成好的文章。先在「写文章」里生成一篇。';
+    document.getElementById('citeConfirm').disabled = true;
+  } else {
+    document.getElementById('citeConfirm').disabled = false;
+    rows.forEach(({ course, task }, index) => {
+      const label = document.createElement('label');
+      label.className = 'cite-item';
+      const box = document.createElement('input');
+      box.type = 'checkbox';
+      box.value = String(index);
+      box.dataset.course = course.id;
+      box.dataset.task = task.id;
+      const text = document.createElement('span');
+      const title = document.createElement('strong');
+      title.textContent = task.title || ('任务 ' + task.id);
+      const small = document.createElement('small');
+      small.textContent = (course.name || '课程') + ' · ' + (task.result || '').replace(/\s+/g, ' ').slice(0, 42);
+      text.appendChild(title);
+      text.appendChild(small);
+      label.appendChild(box);
+      label.appendChild(text);
+      list.appendChild(label);
+    });
+  }
+  document.getElementById('citeModal').style.display = 'flex';
+}
+
+function closeCiteModal() {
+  document.getElementById('citeModal').style.display = 'none';
+}
+
+function confirmCite() {
+  document.querySelectorAll('#citeList input:checked').forEach(box => {
+    const found = findTask(box.dataset.course, box.dataset.task);
+    if (!found) return;
+    composerFiles.push({
+      kind: 'article',
+      name: found.task.title || ('文章 ' + found.task.id),
+      title: found.task.title || '',
+      material: found.task.material || '',
+      text: clipText(found.task.result || '', 12000),
+      courseId: found.course.id,
+      taskId: found.task.id,
+    });
+  });
+  closeCiteModal();
+  renderAttachRow();
+}
+
+let writebackMessageId = '';
+
+function openWriteback(messageId) {
+  const session = currentSession();
+  const message = session?.messages.find(item => item.id === messageId);
+  const draft = message ? fullDraftText(message.text || '') : '';
+  if (!draft) return;
+  writebackMessageId = messageId;
+  const list = document.getElementById('writeList');
+  const rows = listDoneArticles();
+  list.textContent = '';
+  if (!rows.length) {
+    list.textContent = '还没有可以写回的文章。';
+    document.getElementById('writeConfirm').disabled = true;
+  } else {
+    document.getElementById('writeConfirm').disabled = false;
+    rows.forEach(({ course, task }) => {
+      const label = document.createElement('label');
+      label.className = 'cite-item';
+      const box = document.createElement('input');
+      box.type = 'radio';
+      box.name = 'writeTarget';
+      box.dataset.course = course.id;
+      box.dataset.task = task.id;
+      const text = document.createElement('span');
+      text.textContent = (task.title || ('任务 ' + task.id)) + ' · ' + (course.name || '');
+      label.appendChild(box);
+      label.appendChild(text);
+      list.appendChild(label);
+    });
+  }
+  document.getElementById('writeModal').style.display = 'flex';
+}
+
+function closeWriteback() {
+  document.getElementById('writeModal').style.display = 'none';
+}
+
+function confirmWriteback() {
+  const selected = document.querySelector('#writeList input:checked');
+  if (!selected) { alert('请先选一篇文章'); return; }
+  const session = currentSession();
+  const message = session?.messages.find(item => item.id === writebackMessageId);
+  const draft = message ? fullDraftText(message.text || '') : '';
+  if (!draft) return;
+  writeDraftToTask(selected.dataset.course, selected.dataset.task, draft);
+  if (message) message.applied = { courseId: selected.dataset.course, taskId: selected.dataset.task };
+  if (session) rememberSession(session);
+  closeWriteback();
+  renderClaude();
+}
+
+function writeDraftToTask(courseId, taskId, text) {
+  const found = findTask(courseId, taskId);
+  if (!found || !text) return false;
+  const task = found.task;
   task.prevResult = task.result || '';
   task.prevTruncated = !!task.truncated;
   task.hasPrev = true;
-  task.result = revision;
+  task.result = text;
   task.truncated = false;
   task.errorMsg = '';
   task.status = 'done';
-  setTaskStatus(task.id, 'done');
-  chatNotice = '已换成修订稿。不满意就点「恢复上一稿」。';
+  if (!isGenerating && found.course.id !== currentCourseId) {
+    currentCourseId = found.course.id;
+    activeViewId = task.id;
+    renderCourseTabs();
+    renderCourseArea();
+  } else if (found.course.id === currentCourseId) {
+    activeViewId = task.id;
+    setTaskStatus(task.id, 'done');
+    renderTaskList();
+    renderRightPanel();
+  }
   saveToStorage();
-  renderRightPanel();
+  return true;
 }
 
-function undoChatRevision() {
-  if (chatBusy || isGenerating) return;
-  const task = getActiveTask();
+function undoWriteback(messageId) {
+  const session = currentSession();
+  const message = session?.messages.find(item => item.id === messageId);
+  if (!message?.applied) return;
+  undoChatRevision(message.applied.courseId, message.applied.taskId);
+  message.applied = null;
+  rememberSession(session);
+  renderClaude();
+}
+
+function undoChatRevision(courseId, taskId) {
+  if (isGenerating) return;
+  const found = (courseId != null && taskId != null && typeof courseId !== 'object')
+    ? findTask(courseId, taskId)
+    : null;
+  const task = found?.task || getActiveTask();
   if (!task || !task.hasPrev) return;
   task.result = task.prevResult || '';
   task.truncated = !!task.prevTruncated;
@@ -2566,10 +3321,11 @@ function undoChatRevision() {
     task.status = 'done';
     setTaskStatus(task.id, 'done');
   }
-  chatNotice = '已恢复上一稿。';
   saveToStorage();
   renderRightPanel();
 }
+
+// API 配置持久化
 
 // API 配置持久化
 // ============================================================
@@ -2594,7 +3350,7 @@ function onApiUrlInput() {
   const url = getApiUrl();
   if (url) localStorage.setItem(LS_API_URL, url);
   else localStorage.removeItem(LS_API_URL);
-  renderChat();
+  if (appView === 'chat') updateChrome();
 }
 
 function onApiKeyInput() {
@@ -2606,12 +3362,19 @@ function onApiKeyInput() {
     localStorage.removeItem(LS_APIKEY);
     document.getElementById('apiSavedBadge').classList.remove('show');
   }
-  renderChat();
+  if (appView === 'chat') updateChrome();
 }
 
 function onModelChange() {
-  localStorage.setItem(LS_MODEL, document.getElementById('modelInput').value.trim());
-  renderChat();
+  const model = document.getElementById('modelInput').value.trim();
+  localStorage.setItem(LS_MODEL, model);
+  const chatModel = document.getElementById('chatModel');
+  if (chatModel && chatModel.value !== model) chatModel.value = model;
+  const session = currentSession();
+  if (session && session.model !== model) {
+    session.model = model;
+    rememberSession(session);
+  }
 }
 
 function getApiUrl() {
@@ -2845,7 +3608,7 @@ function confirmBatchImport() {
 // ============================================================
 function init() {
   loadApiKey();
-  loadChatStore();
+  loadClaudeSessions();
   if (loadFromStorage()) {
     courses.forEach(c => { if (!courseDocs[c.id]) courseDocs[c.id] = []; });
     renderCourseTabs();
