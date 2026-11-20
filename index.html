@@ -414,7 +414,7 @@ header {
   padding: 11px 16px;
   background: #f5ede0;
   border-bottom: 1px solid #ddd5c8;
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
 }
 .result-head-title {
   font-size: 13px; font-weight: 600; color: #1a1208;
@@ -449,7 +449,7 @@ header {
 .continue-btn:hover { background: #c0622a; color: white; }
 .continue-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
-.result-body { padding: 20px; max-height: 620px; overflow-y: auto; }
+.result-body { padding: 20px; max-height: 460px; overflow-y: auto; }
 .result-body::-webkit-scrollbar { width: 3px; }
 .result-body::-webkit-scrollbar-thumb { background: #ddd5c8; border-radius: 2px; }
 
@@ -625,6 +625,93 @@ header {
 .import-mode-row { display: flex; gap: 16px; align-items: center; }
 .radio-label { display: flex; align-items: center; gap: 5px; font-size: 13px; color: #665544; cursor: pointer; }
 .radio-label input { cursor: pointer; accent-color: #c0622a; }
+
+/* 和 Claude 改稿 */
+.chat-card {
+  background: #fff;
+  border: 1px solid #ddd5c8;
+  border-radius: 12px;
+  padding: 14px 16px 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.chat-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.chat-head-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.chat-mode, .chat-new {
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid #ddd5c8;
+  background: #fff;
+  color: #8a7560;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.chat-mode:hover, .chat-new:hover { border-color: #e8915a; color: #c0622a; }
+.chat-mode.active { background: #c0622a; color: #fff; border-color: #c0622a; font-weight: 600; }
+.chat-mode.active:hover { color: #fff; }
+.chat-context {
+  font-size: 12px; color: #665544; line-height: 1.65;
+  background: #faf7f2; border-radius: 8px; padding: 8px 10px;
+}
+.chat-warn, .chat-notice {
+  font-size: 12px; line-height: 1.65; border-radius: 8px; padding: 8px 10px;
+}
+.chat-warn { color: #9a6b00; background: #fff8e0; border: 1px solid #f0c840; }
+.chat-notice { color: #4a7c59; background: #eaf4ee; border: 1px solid #b7d7c2; }
+.chat-log {
+  max-height: 420px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 8px;
+  padding-right: 2px;
+}
+.chat-log:empty { display: none; }
+.chat-log::-webkit-scrollbar { width: 3px; }
+.chat-log::-webkit-scrollbar-thumb { background: #ddd5c8; border-radius: 2px; }
+.chat-msg { border-radius: 10px; padding: 10px 12px; font-size: 13px; line-height: 1.75; }
+.chat-msg.user { background: #f5ede0; align-self: flex-end; max-width: 92%; }
+.chat-msg.assistant { background: #faf7f2; border: 1px solid #eee6dc; }
+.chat-msg.note { background: #fff8e0; border: 1px solid #f0c840; color: #6b5400; }
+.chat-msg .who { font-size: 11px; color: #8a7560; margin-bottom: 4px; }
+.chat-body { white-space: pre-wrap; word-break: break-word; }
+.chat-actions { display: flex; flex-direction: column; gap: 8px; }
+.chat-actions:empty { display: none; }
+.chat-replace-note { font-size: 13px; color: #4a7c59; line-height: 1.6; font-weight: 600; }
+.replace-btn {
+  width: 100%; padding: 12px 16px;
+  background: #4a7c59; color: #fff; border: none; border-radius: 10px;
+  font-size: 16px; font-weight: 700; font-family: inherit;
+  letter-spacing: 1px; cursor: pointer;
+  box-shadow: 0 4px 12px rgba(74,124,89,0.28);
+  transition: all 0.2s;
+}
+.replace-btn:hover { background: #3a6347; }
+.undo-btn, .undo-inline {
+  padding: 8px 14px; border-radius: 10px; font-size: 13px;
+  font-family: inherit; cursor: pointer; transition: all 0.2s;
+  background: #fff; color: #8a7560; border: 1px solid #ddd5c8;
+}
+.undo-btn { width: 100%; }
+.undo-btn:hover, .undo-inline:hover { border-color: #c0622a; color: #c0622a; }
+.chat-compose { display: flex; gap: 8px; align-items: flex-end; }
+.chat-compose textarea {
+  flex: 1; min-height: 74px; max-height: 180px;
+  border: 1px solid #ddd5c8; border-radius: 8px;
+  padding: 8px 10px; font-size: 13px; font-family: inherit;
+  line-height: 1.6; resize: vertical; outline: none;
+  background: #faf7f2; color: #1a1208;
+}
+.chat-compose textarea:focus { border-color: #c0622a; background: #fff; }
+.chat-send {
+  padding: 10px 18px; background: #c0622a; color: #fff;
+  border: none; border-radius: 8px; font-size: 14px; font-weight: 600;
+  font-family: inherit; cursor: pointer; white-space: nowrap;
+}
+.chat-send:hover:not(:disabled) { background: #a8541f; }
+.chat-send:disabled { opacity: 0.45; cursor: not-allowed; }
+.chat-hint { font-size: 11px; color: #8a7560; line-height: 1.5; }
 </style>
 </head>
 <body>
@@ -722,7 +809,7 @@ header {
       <!-- 空状态 -->
       <div class="empty-state" id="emptyState">
         <div class="ei">✍️</div>
-        <p>上传课程文档，填写标题和素材<br>点击「开始生成」后文章出现在这里</p>
+        <p>上传课程文档，填写标题和素材<br>点击「开始生成」后文章出现在这里<br>写好后，可以在下面和 Claude 改重复的句子</p>
       </div>
 
       <!-- 文章导航（2篇以上显示） -->
@@ -736,6 +823,7 @@ header {
           <span class="truncated-badge" id="truncatedBadge" style="display:none">⚠️ 未写完</span>
           <div class="result-actions">
             <button class="continue-btn" id="continueBtn" type="button" onclick="continueTask()" style="display:none">续写</button>
+            <button class="undo-inline" id="undoInlineBtn" type="button" onclick="undoChatRevision()" style="display:none">恢复上一稿</button>
             <button class="copy-btn" id="singleCopyBtn" type="button" onclick="copyActiveResult()" disabled>复制 MD</button>
           </div>
         </div>
@@ -746,6 +834,31 @@ header {
           </div>
           <div class="result-text streaming" id="singleText" style="display:none"></div>
         </div>
+      </div>
+
+      <div class="chat-card" id="chatBox">
+        <div class="chat-head">
+          <div class="section-title">和 Claude 改稿</div>
+          <div class="chat-head-actions">
+            <button class="chat-mode active" id="chatModeArticle" type="button" onclick="setChatMode('article')">改当前文章</button>
+            <button class="chat-mode" id="chatModeGeneral" type="button" onclick="setChatMode('general')">不带文章</button>
+            <button class="chat-new" id="chatNewBtn" type="button" onclick="startNewChat()">新对话</button>
+          </div>
+        </div>
+        <div class="chat-context" id="chatContext">点开一篇已生成的文章，就可以让 Claude 帮你改。</div>
+        <div class="chat-warn" id="chatWarn" style="display:none"></div>
+        <div class="chat-log" id="chatLog"></div>
+        <div class="chat-actions" id="chatActions">
+          <div class="chat-replace-note" id="replaceNote" style="display:none"></div>
+          <button class="replace-btn" id="replaceBtn" type="button" onclick="applyChatRevision()" style="display:none">用这篇替换原稿</button>
+          <button class="undo-btn" id="undoReplaceBtn" type="button" onclick="undoChatRevision()" style="display:none">恢复上一稿</button>
+          <div class="chat-notice" id="chatNotice" style="display:none"></div>
+        </div>
+        <div class="chat-compose">
+          <textarea id="chatInput" placeholder="例如：结尾和前面几篇太像了，帮我换一种收法，先别重写全文。" onkeydown="onChatKeydown(event)"></textarea>
+          <button class="chat-send" id="chatSendBtn" type="button" onclick="sendChat()">发送</button>
+        </div>
+        <div class="chat-hint" id="chatHint">Enter 发送，Shift+Enter 换行。只改草稿，不会发布。</div>
       </div>
     </div>
   </div>
@@ -832,11 +945,17 @@ let taskSeq = 0;
 let courseDocs = {};       // {courseId: [{name, size, content}]} — 不持久化
 let activeViewId = null;   // 右侧当前显示哪个任务
 let isGenerating = false;  // 生成中标志，防止切换课程
+let chatMode = 'article';  // article：带上当前文章；general：不带文章
+let chatThreads = {};      // {key: {updated, messages:[{role, content}]}}
+let chatBusy = false;
+let chatStreamText = '';
+let chatNotice = '';
 
 // ============================================================
 // localStorage
 // ============================================================
 const LS_KEY = 'lanma_v3';
+const LS_CHAT = 'lanma_chat_v1';
 
 function saveToStorage() {
   const taskData = t => ({
@@ -845,6 +964,9 @@ function saveToStorage() {
     result: t.result || '',
     refName: t.refName || '',
     truncated: t.truncated || false,
+    prevResult: t.hasPrev ? (t.prevResult || '') : '',
+    prevTruncated: t.hasPrev ? !!t.prevTruncated : false,
+    hasPrev: !!t.hasPrev,
   });
   const base = {
     courses: courses.map(c => ({
@@ -894,6 +1016,9 @@ function loadFromStorage() {
         refName: t.refName || '',
         errorMsg: '',
         truncated: t.truncated || false,
+        prevResult: t.prevResult || '',
+        prevTruncated: !!t.prevTruncated,
+        hasPrev: !!t.hasPrev,
       }))
     }));
     currentCourseId = data.currentCourseId;
@@ -1024,6 +1149,7 @@ function renderRightPanel() {
     emptyState.style.display = '';
     articleNav.style.display = 'none';
     resultCard.style.display = 'none';
+    renderChat();
     return;
   }
 
@@ -1051,10 +1177,12 @@ function renderRightPanel() {
 
   // 结果卡片
   const task = c?.tasks.find(t => t.id === activeViewId);
-  if (!task) { resultCard.style.display = 'none'; return; }
+  if (!task) { resultCard.style.display = 'none'; renderChat(); return; }
 
   resultCard.style.display = '';
   document.getElementById('singleTitle').textContent = task.title || '任务 ' + task.id;
+  const undoInline = document.getElementById('undoInlineBtn');
+  if (undoInline) undoInline.style.display = (task.hasPrev && task.status !== 'run') ? '' : 'none';
 
   const refEl = document.getElementById('singleRef');
   if (task.refName) {
@@ -1102,6 +1230,7 @@ function renderRightPanel() {
     textEl.style.display = 'none';
     copyBtn.disabled = true;
   }
+  renderChat();
 }
 
 // 切换当前查看的文章
@@ -1348,6 +1477,8 @@ function deleteTask(id) {
   if (c) c.tasks = c.tasks.filter(t => t.id !== id);
   document.getElementById('task_' + id)?.remove();
 
+  delete chatThreads[chatKeyFor(currentCourseId, id)];
+  saveChatStore();
   if (activeViewId === id) {
     const next = c?.tasks.find(t => t.status === 'done' || t.status === 'run');
     activeViewId = next?.id ?? null;
@@ -1574,6 +1705,7 @@ async function generateAll() {
   btn.textContent = '开始生成文章';
   renderCourseTabs();
   updateExportBtn();
+  renderChat();
 }
 
 async function readArticleStream(body, onText) {
@@ -1739,6 +1871,7 @@ async function retryTask(taskId) {
   document.getElementById('genBtn').textContent = '开始生成文章';
   renderCourseTabs();
   updateExportBtn();
+  renderChat();
 }
 
 // 接口停止原因优先；末尾标点用于补充判断。
@@ -1790,6 +1923,7 @@ async function continueTask() {
     document.getElementById('continueBtn').disabled = false;
     renderCourseTabs();
     updateExportBtn();
+    renderChat();
   }
 }
 
@@ -1910,6 +2044,9 @@ function exportBackup() {
         id: t.id, title: t.title, material: t.material,
         status: t.status, result: t.result || '',
         refName: t.refName || '', truncated: t.truncated || false,
+        prevResult: t.hasPrev ? (t.prevResult || '') : '',
+        prevTruncated: t.hasPrev ? !!t.prevTruncated : false,
+        hasPrev: !!t.hasPrev,
       }))
     })),
     courseDocs: (() => {
@@ -1949,6 +2086,9 @@ function importBackup(e) {
           refName: t.refName || '',
           errorMsg: '',
           truncated: t.truncated || false,
+          prevResult: t.prevResult || '',
+          prevTruncated: !!t.prevTruncated,
+          hasPrev: !!t.hasPrev,
         }))
       }));
       currentCourseId = data.currentCourseId || (courses[0]?.id ?? null);
@@ -1963,6 +2103,10 @@ function importBackup(e) {
         }
       }
       courses.forEach(c => { if (!courseDocs[c.id]) courseDocs[c.id] = []; });
+      chatThreads = {};
+      chatMode = 'article';
+      chatNotice = '';
+      saveChatStore();
 
       saveToStorage();
       activeViewId = null;
@@ -1977,6 +2121,456 @@ function importBackup(e) {
   };
   reader.readAsText(file, 'utf-8');
 }
+
+// ============================================================
+// 和 Claude 改稿（复用现有 API 地址、Key、模型，不另存一把钥匙）
+// ============================================================
+const CHAT_REPETITION_NOTE = [
+  '【已知的重复问题】',
+  '同一套提示词一次生成很多篇时，文章容易反复出现同一批套话。改稿时请换成只属于这一篇素材的新鲜说法，不要再套用：',
+  '- 用滥的比喻：方向盘/汽油、情绪镜子/阳光灿烂、生理死机、孩子是来渡我们的',
+  '- 反复出现的小标题：最熟悉的陌生人',
+  '- 为了凑词硬塞进去的动作：主动拿书、眼神变了、想摔东西、不吼不叫，以及同类词库',
+  '如果只是某几句重复，就只改那几句，留下文章里真正贴合素材的部分。',
+].join('\n');
+
+function chatKeyFor(courseId, taskId) {
+  return 'c' + courseId + ':t' + taskId;
+}
+
+function getActiveTask() {
+  const course = getCurrentCourse();
+  if (!course || activeViewId == null) return null;
+  return course.tasks.find(t => t.id === activeViewId) || null;
+}
+
+function getChatTask() {
+  if (chatMode !== 'article') return null;
+  return getActiveTask();
+}
+
+function currentChatKey() {
+  const courseId = currentCourseId == null ? 'x' : currentCourseId;
+  if (chatMode === 'general') return 'c' + courseId + ':general';
+  const task = getChatTask();
+  return task ? chatKeyFor(courseId, task.id) : 'c' + courseId + ':none';
+}
+
+function chatMessages(key) {
+  const list = chatThreads[key]?.messages;
+  return Array.isArray(list) ? list : [];
+}
+
+function loadChatStore() {
+  try {
+    const raw = localStorage.getItem(LS_CHAT);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (data.mode === 'general' || data.mode === 'article') chatMode = data.mode;
+    if (data.threads && typeof data.threads === 'object') chatThreads = data.threads;
+  } catch (e) {}
+}
+
+function saveChatStore() {
+  const keys = Object.keys(chatThreads).sort((a, b) =>
+    (chatThreads[b]?.updated || 0) - (chatThreads[a]?.updated || 0));
+  const threads = {};
+  for (const key of keys.slice(0, 10)) {
+    const thread = chatThreads[key] || {};
+    const messages = (Array.isArray(thread.messages) ? thread.messages : []).slice(-20)
+      .map(m => ({
+        role: m.role === 'assistant' || m.role === 'note' ? m.role : 'user',
+        content: String(m.content || '').slice(0, 20000),
+      }))
+      .filter(m => m.content);
+    if (!messages.length) continue;
+    threads[key] = { updated: thread.updated || Date.now(), messages };
+  }
+  chatThreads = threads;
+  try {
+    localStorage.setItem(LS_CHAT, JSON.stringify({ mode: chatMode, threads }));
+    return true;
+  } catch (e) {}
+  const oldest = Object.keys(threads).sort((a, b) => (threads[a].updated || 0) - (threads[b].updated || 0));
+  while (oldest.length) {
+    delete threads[oldest.shift()];
+    try {
+      localStorage.setItem(LS_CHAT, JSON.stringify({ mode: chatMode, threads }));
+      chatThreads = threads;
+      return false;
+    } catch (err) {}
+  }
+  return false;
+}
+
+function missingApiReminder() {
+  const key = document.getElementById('apiKey')?.value.trim() || '';
+  if (getApiUrl() && getModel() && key) return '';
+  return '还不能聊天：请先在页面最上方填好 API 地址、API Key 和模型。改稿用的是这一套，不用再填第二把钥匙。';
+}
+
+function clipText(text, max) {
+  const value = String(text || '');
+  if (value.length <= max) return value;
+  return value.slice(0, max) + '\n…（后面太长，已省略）';
+}
+
+function countHan(text) {
+  return (String(text || '').match(/[\u4e00-\u9fff]/g) || []).length;
+}
+
+function revisionFloor(task) {
+  const original = countHan(task?.result || '');
+  if (!original) return 600;
+  return Math.max(400, Math.min(700, Math.floor(original * 0.45)));
+}
+
+function extractMarkedRevision(text) {
+  const matched = String(text || '').match(/【修订全文】\s*([\s\S]*?)\s*【修订全文结束】/);
+  if (!matched) return '';
+  return matched[1]
+    .replace(/^```(?:article|markdown|md|text)?\s*/i, '')
+    .replace(/\s*```$/, '')
+    .trim();
+}
+
+function looksLikeFullArticle(text, task) {
+  const body = String(text || '').trim();
+  if (countHan(body) < revisionFloor(task)) return false;
+  const blocks = body.split(/\n\s*\n/).map(part => part.trim()).filter(Boolean);
+  if (blocks.length < 3) return false;
+  const first = (blocks[0].split('\n')[0] || '').replace(/^#+\s*/, '').replace(/\*/g, '').trim();
+  if (/^(可以|建议|我建议|下面|这里|问题|修改|有几|先说|整体|这段|这句|结尾|开头)/.test(first)) return false;
+  // 全文后面若还拖着一句短建议，说明这不是可以直接替换的正文。
+  const aside = blocks.slice(1).some(block =>
+    block.length < 50 && /^(不过|但是|另外|建议|我建议|可以|这里|注意|以上)/.test(block));
+  if (aside) return false;
+  const title = (task?.title || '').trim();
+  if (!title) return countHan(body) >= 800;
+  return first === title || first === '《' + title + '》';
+}
+
+// 只有完整修订稿才返回正文。单纯的建议返回空字符串，避免误替换。
+function extractRevision(text, task) {
+  if (!task) return '';
+  const marked = extractMarkedRevision(text);
+  if (marked) return countHan(marked) >= 200 ? marked : '';
+  const normalized = normalizeGeneratedArticle(String(text || '').trim(), task.title);
+  if (!looksLikeFullArticle(normalized, task)) return '';
+  return normalized.trim();
+}
+
+function latestRevision(task) {
+  if (!task || chatMode !== 'article') return '';
+  const messages = chatMessages(currentChatKey());
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role !== 'assistant' || !messages[i].content) continue;
+    const revision = extractRevision(messages[i].content, task);
+    if (!revision) continue;
+    if (revision === task.result) return '';
+    return revision;
+  }
+  return '';
+}
+
+function buildChatSystem(task) {
+  const course = getCurrentCourse();
+  const prompt = clipText((getLivePromptText() || course?.prompt || '').trim(), 8000);
+  const lines = [
+    '你是懒妈方宁的改稿助手，正在和 linda（小溪）对话。她不是程序员。请用简体中文，句子短、好懂，像一位坐在旁边帮她改文章的编辑，直接用「你」称呼她。',
+    '你只改草稿、讨论写法和提示词。不要建议发布，也不要提到小红书或任何平台的发布操作。',
+    '她常常只想改重复的句子、比喻、小标题或结尾。没让你重写全文时，只给建议或改那一段，不要输出整篇文章。',
+    '只有当她明确要求重写全文、换一整篇，或你给出的就是可以直接替换的完整文章时，才输出修订稿。',
+    '输出完整修订稿时，全文单独放在下面两行标记之间。标记外面最多用一两句人话说明改了什么。标记之间不要加代码围栏，不要写思考过程：',
+    '【修订全文】',
+    '（从标题开始的完整中文正文）',
+    '【修订全文结束】',
+  ];
+  lines.push('', prompt
+    ? '【当前课程的专属提示词】写作时要遵守。如果她在讨论提示词本身，可以一起改措辞。\n' + prompt
+    : '【当前课程的专属提示词】这门课还没有写专属提示词。');
+  lines.push('', CHAT_REPETITION_NOTE);
+  if (task) {
+    lines.push(
+      '',
+      '【正在改的这篇文章】',
+      '标题：' + (task.title || '（无标题）'),
+      '素材：' + clipText(task.material || '（无素材）', 4000),
+      '当前正文：',
+      clipText(task.result || '（还没有正文）', 14000),
+    );
+  } else {
+    lines.push('', '【这次没有附带具体文章】请和她讨论提示词或写法。不要凭空编一篇完整文章，除非她明确要求看示例。示例如果是全文，仍用修订全文标记包起来。要替换某一篇已有文章时，请让她先点开那一篇。');
+  }
+  return lines.join('\n');
+}
+
+function chatApiMessages(messages) {
+  const api = [];
+  for (const message of messages || []) {
+    if ((message.role !== 'user' && message.role !== 'assistant') || !message.content) continue;
+    const prev = api[api.length - 1];
+    if (prev && prev.role === message.role) prev.content += '\n\n' + message.content;
+    else api.push({ role: message.role, content: String(message.content) });
+  }
+  return api.slice(-12);
+}
+
+function chatContextText(task) {
+  if (isGenerating) return '文章正在生成，写完再聊。';
+  if (chatMode === 'general') return '自由讨论，不带文章。适合商量提示词怎么写，或者怎样避开重复的比喻。';
+  if (!task) return '还没选中文章。在左边点开一篇「已完成」的，或改选「不带文章」。';
+  const title = task.title || ('任务 ' + task.id);
+  if (!task.result) return '已选中「' + title + '」，但这篇还没有正文。可以先生成，也可以先聊聊标题和素材。';
+  return '正在改「' + title + '」。可以直接说哪里重复、哪里别扭。';
+}
+
+function displayChatText(content) {
+  const raw = String(content || '');
+  if (!raw.includes('【修订全文】')) return raw;
+  const marked = extractMarkedRevision(raw);
+  if (!marked) return raw;
+  const note = raw.replace(/【修订全文】[\s\S]*?【修订全文结束】/, '').trim();
+  return note ? note + '\n\n' + marked : marked;
+}
+
+function appendChatBubble(log, message, streaming) {
+  const role = message.role === 'user' ? 'user' : message.role === 'note' ? 'note' : 'assistant';
+  const bubble = document.createElement('div');
+  bubble.className = 'chat-msg ' + role;
+  const who = document.createElement('div');
+  who.className = 'who';
+  who.textContent = role === 'user' ? '我' : role === 'note' ? '提示' : 'Claude';
+  const body = document.createElement('div');
+  body.className = 'chat-body';
+  if (streaming) body.id = 'chatStreamBody';
+  body.textContent = streaming ? (chatStreamText || '正在回复…') : displayChatText(message.content);
+  bubble.appendChild(who);
+  bubble.appendChild(body);
+  log.appendChild(bubble);
+  if (streaming && chatStreamText) {
+    const cursor = document.createElement('span');
+    cursor.className = 'cursor';
+    body.appendChild(cursor);
+  }
+}
+
+function paintStreaming(text) {
+  const body = document.getElementById('chatStreamBody');
+  if (!body) return;
+  body.textContent = text || '正在回复…';
+  const cursor = document.createElement('span');
+  cursor.className = 'cursor';
+  body.appendChild(cursor);
+  const log = document.getElementById('chatLog');
+  if (log) log.scrollTop = log.scrollHeight || 0;
+}
+
+function renderChat() {
+  const log = document.getElementById('chatLog');
+  const context = document.getElementById('chatContext');
+  if (!log || !context) return;
+  const task = getChatTask();
+  const activeTask = getActiveTask();
+  context.textContent = chatContextText(task);
+  document.getElementById('chatModeArticle').className = 'chat-mode' + (chatMode === 'article' ? ' active' : '');
+  document.getElementById('chatModeGeneral').className = 'chat-mode' + (chatMode === 'general' ? ' active' : '');
+
+  const reminder = missingApiReminder();
+  const warn = document.getElementById('chatWarn');
+  warn.style.display = reminder ? '' : 'none';
+  warn.textContent = reminder;
+
+  log.textContent = '';
+  for (const message of chatMessages(currentChatKey())) appendChatBubble(log, message, false);
+  if (chatBusy) appendChatBubble(log, { role: 'assistant', content: '' }, true);
+  log.scrollTop = log.scrollHeight || 0;
+
+  const revision = !chatBusy && task ? latestRevision(task) : '';
+  const replaceNote = document.getElementById('replaceNote');
+  const replaceBtn = document.getElementById('replaceBtn');
+  replaceBtn.style.display = revision ? '' : 'none';
+  replaceNote.style.display = revision ? '' : 'none';
+  replaceNote.textContent = revision
+    ? '上面有一整篇修订稿。只有点「用这篇替换原稿」才会换掉文章，原来的稿子可以再恢复。'
+    : '';
+  const showUndo = !!(activeTask && activeTask.hasPrev) && !isGenerating;
+  document.getElementById('undoReplaceBtn').style.display = showUndo ? '' : 'none';
+
+  const notice = document.getElementById('chatNotice');
+  notice.style.display = chatNotice ? '' : 'none';
+  notice.textContent = chatNotice;
+  document.getElementById('chatActions').style.display = (revision || showUndo || chatNotice) ? 'flex' : 'none';
+
+  const sendBtn = document.getElementById('chatSendBtn');
+  sendBtn.disabled = chatBusy || isGenerating || !!reminder;
+  sendBtn.textContent = chatBusy ? '正在回复…' : '发送';
+  document.getElementById('chatHint').textContent = isGenerating
+    ? '文章正在生成，写完再聊。只改草稿，不会发布。'
+    : 'Enter 发送，Shift+Enter 换行。只改草稿，不会发布。';
+}
+
+function setChatMode(mode) {
+  if (chatBusy) return;
+  chatMode = mode === 'general' ? 'general' : 'article';
+  chatNotice = '';
+  saveChatStore();
+  renderChat();
+}
+
+function startNewChat() {
+  if (chatBusy) return;
+  if (chatMode === 'article' && !getChatTask()) {
+    alert('请先在左边点开一篇文章，或改选「不带文章」。');
+    return;
+  }
+  const key = currentChatKey();
+  const hasTalk = chatMessages(key).some(m => m.role === 'user' || m.role === 'assistant');
+  if (hasTalk && !confirm('清空这段对话？文章正文不会被改掉。')) return;
+  delete chatThreads[key];
+  chatNotice = '';
+  saveChatStore();
+  renderChat();
+}
+
+function onChatKeydown(e) {
+  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+    e.preventDefault();
+    sendChat();
+  }
+}
+
+async function requestChat(system, messages, onText) {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  const resp = await fetch(getApiUrl(), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'Authorization': `Bearer ${apiKey}`,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: getModel(),
+      max_tokens: 12000,
+      stream: true,
+      system,
+      messages,
+    }),
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.error?.message || ('HTTP ' + resp.status));
+  }
+  if (!resp.body) throw new Error('未收到回复');
+  return await readArticleStream(resp.body, onText);
+}
+
+async function sendChat() {
+  if (chatBusy) return;
+  if (isGenerating) {
+    alert('文章正在生成，请等这一篇写完再聊天。');
+    return;
+  }
+  const input = document.getElementById('chatInput');
+  if (!input) return;
+  const text = input.value.trim();
+  if (!text) return;
+  if (text.length > 8000) {
+    alert('这条太长了。可以分成几次说，一次尽量别超过一大段。');
+    return;
+  }
+  const reminder = missingApiReminder();
+  if (reminder) { alert(reminder); return; }
+  const apiKey = document.getElementById('apiKey').value.trim();
+  if (!/^[\x00-\xFF]*$/.test(apiKey)) {
+    alert('API Key 含有非法字符（如中文），请检查后重新粘贴正确的 API Key');
+    return;
+  }
+  const task = chatMode === 'article' ? getChatTask() : null;
+  if (chatMode === 'article' && !task) {
+    alert('请先在左边点开一篇文章，或改选「不带文章」。');
+    return;
+  }
+
+  const key = currentChatKey();
+  const thread = chatThreads[key] || { messages: [] };
+  thread.messages = chatMessages(key).slice();
+  thread.messages.push({ role: 'user', content: text });
+  if (thread.messages.length > 20) thread.messages = thread.messages.slice(-20);
+  thread.updated = Date.now();
+  chatThreads[key] = thread;
+  input.value = '';
+  chatNotice = '';
+  chatStreamText = '';
+  chatBusy = true;
+  renderChat();
+
+  try {
+    const output = await requestChat(
+      buildChatSystem(task),
+      chatApiMessages(thread.messages),
+      (full) => { chatStreamText = full; paintStreaming(full); }
+    );
+    const reply = (output?.text || '').trim();
+    if (!reply) throw new Error(output?.streamError || '没有收到回复');
+    thread.messages.push({ role: 'assistant', content: reply });
+    if (output.streamError) thread.messages.push({ role: 'note', content: '回复可能不完整：' + output.streamError });
+    thread.updated = Date.now();
+  } catch (err) {
+    if (!input.value.trim()) {
+      thread.messages.pop();
+      input.value = text;
+    }
+    thread.messages.push({ role: 'note', content: '没有收到回复：' + (err.message || '请再试一次') });
+    thread.updated = Date.now();
+  } finally {
+    chatBusy = false;
+    chatStreamText = '';
+    if (thread.messages.length > 20) thread.messages = thread.messages.slice(-20);
+    if (!saveChatStore()) chatNotice = '这段对话没能记住，刷新后可能消失。文章本身还在。';
+    renderChat();
+  }
+}
+
+function applyChatRevision() {
+  if (chatBusy || isGenerating) return;
+  const task = getChatTask();
+  if (!task) return;
+  const revision = latestRevision(task);
+  if (!revision || revision === task.result) return;
+  task.prevResult = task.result || '';
+  task.prevTruncated = !!task.truncated;
+  task.hasPrev = true;
+  task.result = revision;
+  task.truncated = false;
+  task.errorMsg = '';
+  task.status = 'done';
+  setTaskStatus(task.id, 'done');
+  chatNotice = '已换成修订稿。不满意就点「恢复上一稿」。';
+  saveToStorage();
+  renderRightPanel();
+}
+
+function undoChatRevision() {
+  if (chatBusy || isGenerating) return;
+  const task = getActiveTask();
+  if (!task || !task.hasPrev) return;
+  task.result = task.prevResult || '';
+  task.truncated = !!task.prevTruncated;
+  task.hasPrev = false;
+  task.prevResult = '';
+  task.prevTruncated = false;
+  task.errorMsg = '';
+  if (task.result) {
+    task.status = 'done';
+    setTaskStatus(task.id, 'done');
+  }
+  chatNotice = '已恢复上一稿。';
+  saveToStorage();
+  renderRightPanel();
+}
+
 // API 配置持久化
 // ============================================================
 const DEFAULT_API_URL = 'https://direct.evolink.ai/v1/messages';
@@ -2000,6 +2594,7 @@ function onApiUrlInput() {
   const url = getApiUrl();
   if (url) localStorage.setItem(LS_API_URL, url);
   else localStorage.removeItem(LS_API_URL);
+  renderChat();
 }
 
 function onApiKeyInput() {
@@ -2011,10 +2606,12 @@ function onApiKeyInput() {
     localStorage.removeItem(LS_APIKEY);
     document.getElementById('apiSavedBadge').classList.remove('show');
   }
+  renderChat();
 }
 
 function onModelChange() {
   localStorage.setItem(LS_MODEL, document.getElementById('modelInput').value.trim());
+  renderChat();
 }
 
 function getApiUrl() {
@@ -2248,6 +2845,7 @@ function confirmBatchImport() {
 // ============================================================
 function init() {
   loadApiKey();
+  loadChatStore();
   if (loadFromStorage()) {
     courses.forEach(c => { if (!courseDocs[c.id]) courseDocs[c.id] = []; });
     renderCourseTabs();
